@@ -1,0 +1,25 @@
+/* Custom styles beyond Tailwind */
+body {
+  font-family: 'Inter', sans-serif; /* Fallback font */
+}
+
+.custom-navbar {
+  background-color: #f8f9fa; /* Light mode */
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dark .custom-navbar {
+  background-color: #1a202c; /* Dark mode */
+  border-bottom: 1px solid #2d3748;
+}
+
+/* Fix for any overflow or z-index issues */
+.relative {
+  position: relative;
+}
+
+/* Animation overrides if needed */
+.animate-pulse-slow {
+  animation-duration: 3s;
+}
