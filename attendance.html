@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clock In - VisageTrack AI</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300">
+    <!-- Navbar (reuse from components/navbar.js) -->
+    <custom-navbar></custom-navbar>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex items-center justify-center p-6">
+        <div class="w-full max-w-2xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-200 dark:border-slate-700">
+            <h1 class="text-4xl font-bold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600">
+                Clock In Now
+            </h1>
+            <p class="text-center text-lg text-slate-600 dark:text-slate-300 mb-6">
+                Position your face in the frame and click below to record attendance with your face.
+            </p>
+
+            <!-- Webcam Preview -->
+            <div class="relative mb-6 overflow-hidden rounded-xl border-4 border-primary-600">
+                <video id="video" autoplay playsinline class="w-full h-auto"></video>
+                <div id="scan-line" class="absolute inset-0 bg-gradient-to-b from-transparent via-primary-500/50 to-transparent pointer-events-none animate-scan"></div>
+            </div>
+
+            <!-- Status Message -->
+            <div id="status" class="text-center text-lg font-medium mb-6 text-slate-700 dark:text-slate-300">
+                Waiting for camera access...
+            </div>
+
+            <!-- Clock In Button -->
+            <button id="clock-in-btn" class="w-full py-4 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i data-feather="camera" class="w-6 h-6"></i>
+                Record Attendance with Your Face
+            </button>
+        </div>
+    </main>
+
+    <script src="components/navbar.js"></script>
+    <script src="script.js"></script>
+    <script>
+        feather.replace();
+
+        const video = document.getElementById('video');
+        const status = document.getElementById('status');
+        const clockInBtn = document.getElementById('clock-in-btn');
+
+        // Start webcam
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                video.srcObject = stream;
+                status.textContent = 'Camera ready. Click to record attendance with your face!';
+                clockInBtn.disabled = false;
+            } catch (err) {
+                status.textContent = 'Camera access denied. Please allow webcam access.';
+                console.error('Camera error:', err);
+            }
+        }
+
+        // Capture frame and send to backend
+        async function recordAttendance() {
+            clockInBtn.disabled = true;
+            status.textContent = 'Capturing and verifying your face...';
+
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('image', blob, 'capture.jpg');
+
+                try {
+                    const response = await fetch('/api/recognize', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        status.innerHTML = `<span class="text-emerald-600 font-bold">${data.message}</span>`;
+                        clockInBtn.innerHTML = '<i data-feather="check-circle"></i> Attendance Recorded!';
+                        clockInBtn.classList.add('bg-emerald-600');
+                    } else {
+                        status.innerHTML = `<span class="text-red-600">${data.message}</span>`;
+                        clockInBtn.disabled = false;
+                    }
+                } catch (err) {
+                    status.textContent = 'Error connecting to server. Try again.';
+                    clockInBtn.disabled = false;
+                    console.error(err);
+                }
+            }, 'image/jpeg', 0.9);
+        }
+
+        // Event listeners
+        clockInBtn.addEventListener('click', recordAttendance);
+        video.addEventListener('loadedmetadata', () => {
+            status.textContent = 'Camera ready. Click to record attendance with your face!';
+        });
+
+        // Start camera on page load
+        startCamera();
+    </script>
+</body>
+</html>
