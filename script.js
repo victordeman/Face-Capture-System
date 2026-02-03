@@ -1,45 +1,40 @@
-// Initialize Feather icons (already in HTML: feather.replace())
+// ... (existing code)
 
-// Theme toggle
-const themeToggle = document.getElementById('theme-toggle');
-themeToggle.addEventListener('click', () => {
-  document.body.classList.toggle('dark');
-  localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
-});
-
-// Load saved theme
-if (localStorage.getItem('theme') === 'dark') {
-  document.body.classList.add('dark');
-}
-
-// Login form submission (demo: log to console)
-const loginForm = document.getElementById('login-form');
-loginForm.addEventListener('submit', (e) => {
+// Enrollment demo
+const enrollForm = document.getElementById('enroll-form');  // Assume you add this form
+enrollForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  console.log('Login submitted - Role:', document.querySelector('input[name="role"]:checked').value);
-  alert('Logged in successfully! Redirecting to dashboard...');
-  // In production, redirect or fetch data
+  const formData = new FormData();
+  formData.append('name', 'User Name');
+  formData.append('email', 'user@email.com');
+  // Capture multiple frames and append as 'image1', 'image2', etc.
+  // Use canvas to capture 10 frames over time
+  for (let i = 1; i <= 10; i++) {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.toBlob(blob => formData.append(`image${i}`, blob, `image${i}.jpg`));
+    await new Promise(r => setTimeout(r, 200));  // Delay for angles
+  }
+  
+  const response = await fetch('/api/enroll', { method: 'POST', body: formData });
+  const data = await response.json();
+  alert(data.message);
 });
 
-// Face-api.js demo init (for recording attendance with your face)
-Promise.all([
-  faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/models'),
-  faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/models'),
-  faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/models')
-]).then(() => {
-  console.log('Face-api models loaded. Ready to record attendance with your face.');
-  // Add webcam logic here if needed, e.g., startVideo()
-});
-
-function startVideo() {
-  navigator.mediaDevices.getUserMedia({ video: {} })
-    .then(stream => {
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      video.play();
-      // Use faceapi.detectAllFaces(video) to detect and record attendance with your face
-    })
-    .catch(err => console.error('Webcam error:', err));
+// Recognition for attendance
+async function recordAttendance() {
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const formData = new FormData();
+  canvas.toBlob(blob => formData.append('image', blob, 'capture.jpg'));
+  
+  const response = await fetch('/api/recognize', { method: 'POST', body: formData });
+  const data = await response.json();
+  alert(data.message);  // "Attendance recorded with your face"
 }
 
-// Call startVideo() on button click if needed
+// Call recordAttendance() on button click
