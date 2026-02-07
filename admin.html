@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - VisageTrack AI</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300">
+    <!-- Navbar -->
+    <custom-navbar></custom-navbar>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-6">
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-4xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600">
+                Admin Dashboard
+            </h1>
+
+            <!-- Users Section -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-bold mb-4">Enrolled Users</h2>
+                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                    <table id="users-table" class="w-full text-left">
+                        <thead class="bg-slate-100 dark:bg-slate-800">
+                            <tr>
+                                <th class="p-4">ID</th>
+                                <th class="p-4">Name</th>
+                                <th class="p-4">Email</th>
+                                <th class="p-4">Role</th>
+                                <th class="p-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <button id="export-users" class="mt-4 px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold">Export Users CSV</button>
+            </section>
+
+            <!-- Attendance Logs Section -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-bold mb-4">Attendance Logs</h2>
+                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                    <table id="logs-table" class="w-full text-left">
+                        <thead class="bg-slate-100 dark:bg-slate-800">
+                            <tr>
+                                <th class="p-4">ID</th>
+                                <th class="p-4">User</th>
+                                <th class="p-4">Timestamp</th>
+                                <th class="p-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <button id="export-logs" class="mt-4 px-6 py-3 rounded-xl bg-primary-600 text-white font-semibold">Export Logs CSV</button>
+            </section>
+
+            <!-- Chart Section -->
+            <section>
+                <h2 class="text-2xl font-bold mb-4">Attendance Trends</h2>
+                <canvas id="attendance-chart" class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700"></canvas>
+            </section>
+        </div>
+    </main>
+
+    <script src="components/navbar.js"></script>
+    <script src="script.js"></script>
+    <script>
+        feather.replace();
+
+        const token = localStorage.getItem('jwt_token');
+        if (!token) {
+            window.location.href = '/';
+        }
+
+        // Fetch and display users
+        async function loadUsers() {
+            const response = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!response.ok) return;
+            const { users } = await response.json();
+            const tbody = document.querySelector('#users-table tbody');
+            tbody.innerHTML = users.map(u => `
+                <tr class="border-t border-slate-200 dark:border-slate-700">
+                    <td class="p-4">${u.id}</td>
+                    <td class="p-4">${u.name}</td>
+                    <td class="p-4">${u.email}</td>
+                    <td class="p-4">${u.role}</td>
+                    <td class="p-4"><button class="text-red-600">Delete</button></td>
+                </tr>
+            `).join('');
+        }
+
+        // Fetch and display logs
+        async function loadLogs() {
+            const response = await fetch('/api/admin/attendance', { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!response.ok) return;
+            const { logs } = await response.json();
+            const tbody = document.querySelector('#logs-table tbody');
+            tbody.innerHTML = logs.map(l => `
+                <tr class="border-t border-slate-200 dark:border-slate-700">
+                    <td class="p-4">${l.id}</td>
+                    <td class="p-4">${l.name}</td>
+                    <td class="p-4">${l.timestamp}</td>
+                    <td class="p-4">${l.status}</td>
+                </tr>
+            `).join('');
+
+            // Simple chart (daily counts - mock data; aggregate in prod)
+            const ctx = document.getElementById('attendance-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+                    datasets: [{ label: 'Attendance', data: [50, 60, 55, 70, 65], borderColor: '#8b5cf6' }]
+                },
+                options: { responsive: true }
+            });
+        }
+
+        // Export CSV (basic - client-side)
+        document.getElementById('export-users').addEventListener('click', () => {
+            // Fetch users again and generate CSV
+            alert('Exporting...');  // Implement Blob download
+        });
+
+        document.getElementById('export-logs').addEventListener('click', () => {
+            alert('Exporting...');
+        });
+
+        // Load data
+        loadUsers();
+        loadLogs();
+    </script>
+</body>
+</html>
