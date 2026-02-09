@@ -58,6 +58,14 @@ cd Face-Capture-System
 
 ### 1. Clone the Repository Locally (If Not Already Done):
 
-```Open a terminal.
 Navigate to your project folder: cd path/to/Face-Capture-System.
 If not cloned: git clone https://github.com/victordeman/Face-Capture-System.git.
+
+Create a virtual environment: python -m venv venv (activate: venv\Scripts\activate on Windows, source venv/bin/activate on macOS/Linux).
+Install dependencies: pip install flask flask-restful flask-jwt-extended face_recognition opencv-python sqlite3 cryptography.
+flask: Web framework.
+flask-restful: For APIs.
+flask-jwt-extended: For authentication.
+face_recognition: For embeddings (installs dlib automatically).
+opencv-python: For image processing.
+cryptography: For encryption.
