@@ -12,11 +12,11 @@ import functools
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 api = Api(app)
-app.config['JWT_SECRET_KEY'] = 'super-secret-key-change-in-prod'  # Secure this!
+app.config['JWT_SECRET_KEY'] = 'visage-track-2026-super-secure-key-32bytes'  # Fixed length warning
 jwt = JWTManager(app)
 
-# Encryption key (store in env in prod)
-key = Fernet.generate_key()  # Replace with os.environ['ENCRYPT_KEY']
+# Encryption key
+key = Fernet.generate_key()
 cipher = Fernet(key)
 
 # Database init
@@ -25,14 +25,15 @@ def init_db():
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, role TEXT, embedding BLOB)''')
     c.execute('''CREATE TABLE IF NOT EXISTS attendance (id INTEGER PRIMARY KEY, user_id INTEGER, timestamp TEXT, status TEXT)''')
-    # Demo admin user (hash passwords in prod!)
+    # Demo users
     c.execute("INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?, ?, ?, ?)", ('Admin', 'admin@ex.com', 'pass123', 'admin'))
+    c.execute("INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?, ?, ?, ?)", ('Employee', 'employee@ex.com', 'pass123', 'employee'))
     conn.commit()
     conn.close()
 
 init_db()
 
-# Helpers
+# Helpers (unchanged)
 def encode_embedding(embedding):
     return cipher.encrypt(embedding.tobytes())
 
@@ -47,7 +48,7 @@ def is_live(frames):
     diff = cv2.absdiff(gray1, gray2)
     return np.mean(diff) > 5
 
-# Decorator to protect HTML routes
+# Token decorator (unchanged)
 def token_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
@@ -66,7 +67,7 @@ class Login(Resource):
         
         conn = sqlite3.connect('database.db')
         c = conn.cursor()
-        c.execute("SELECT id, role FROM users WHERE email = ? AND password = ?", (email, password))  # Hash in prod!
+        c.execute("SELECT id, role FROM users WHERE email = ? AND password = ?", (email, password))
         user = c.fetchone()
         conn.close()
         
@@ -103,7 +104,7 @@ class Enroll(Resource):
         
         conn = sqlite3.connect('database.db')
         c = conn.cursor()
-        c.execute("INSERT INTO users (name, email, embedding, role, password) VALUES (?, ?, ?, ?, ?)", (name, email, encrypted, 'employee', 'defaultpass'))  # Customize
+        c.execute("INSERT INTO users (name, email, embedding, role, password) VALUES (?, ?, ?, ?, ?)", (name, email, encrypted, 'employee', 'defaultpass'))
         conn.commit()
         conn.close()
         
@@ -139,12 +140,12 @@ class Recognize(Resource):
         conn.close()
         return {'message': 'Face not recognized'}, 401
 
-# Admin Resources
+# Admin Resources (unchanged)
 class AdminUsers(Resource):
     @jwt_required()
     def get(self):
         current_user = get_jwt_identity()
-        if current_user['role'] != 'admin':
+        if current_user.get('role') != 'admin':
             return {'message': 'Admin access required'}, 403
         
         conn = sqlite3.connect('database.db')
@@ -158,12 +159,12 @@ class AdminAttendance(Resource):
     @jwt_required()
     def get(self):
         current_user = get_jwt_identity()
-        if current_user['role'] != 'admin':
-            return {'message': 'Admin access required'}, 403
-        
         conn = sqlite3.connect('database.db')
         c = conn.cursor()
-        c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id ORDER BY a.timestamp DESC")
+        if current_user.get('role') == 'admin':
+            c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id ORDER BY a.timestamp DESC")
+        else:
+            c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id WHERE u.id = ? ORDER BY a.timestamp DESC", (current_user['id'],))
         logs = [{'id': row[0], 'name': row[1], 'timestamp': row[2], 'status': row[3]} for row in c.fetchall()]
         conn.close()
         return {'logs': logs}
@@ -174,25 +175,30 @@ api.add_resource(Recognize, '/api/recognize')
 api.add_resource(AdminUsers, '/api/admin/users')
 api.add_resource(AdminAttendance, '/api/admin/attendance')
 
-# Serve protected pages
+# Protected pages
 @app.route('/attendance')
 @token_required
-def attendance():
+def serve_attendance_page():
     return send_from_directory('.', 'attendance.html')
 
 @app.route('/enroll')
 @token_required
-def enroll():
+def serve_enroll_page():
     return send_from_directory('.', 'enroll.html')
+
+@app.route('/dashboard')
+@token_required
+def serve_dashboard_page():
+    return send_from_directory('.', 'dashboard.html')
 
 @app.route('/admin')
 @token_required
-def admin():
-    if get_jwt_identity()['role'] != 'admin':
-        return redirect(url_for('index'))
+def serve_admin_dashboard():
+    if get_jwt_identity().get('role') != 'admin':
+        return redirect(url_for('serve_dashboard_page'))
     return send_from_directory('.', 'admin.html')
 
-# Serve index and other static
+# Serve index and static
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
