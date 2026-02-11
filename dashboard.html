@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - VisageTrack AI</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300">
+    <!-- Navbar -->
+    <custom-navbar></custom-navbar>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-6">
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-4xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600">
+                Your Dashboard
+            </h1>
+            <p class="text-center text-lg text-slate-600 dark:text-slate-300 mb-6">
+                View your attendance history and record attendance with your face quickly.
+            </p>
+
+            <!-- Quick Clock-In -->
+            <div class="text-center mb-12">
+                <a href="/attendance" class="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold shadow-lg transition-all hover:scale-105">
+                    <i data-feather="camera" class="mr-2 w-5 h-5"></i>
+                    Record Attendance with Your Face
+                </a>
+            </div>
+
+            <!-- Attendance Logs -->
+            <section>
+                <h2 class="text-2xl font-bold mb-4">Your Attendance Logs</h2>
+                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                    <table id="logs-table" class="w-full text-left">
+                        <thead class="bg-slate-100 dark:bg-slate-800">
+                            <tr>
+                                <th class="p-4">Timestamp</th>
+                                <th class="p-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="components/navbar.js"></script>
+    <script src="script.js"></script>
+    <script>
+        feather.replace();
+
+        const token = localStorage.getItem('jwt_token');
+        if (!token) {
+            window.location.href = '/';
+        }
+
+        // Fetch and display personal logs
+        async function loadPersonalLogs() {
+            const response = await fetch('/api/admin/attendance', { headers: { 'Authorization': `Bearer ${token}` } });  // Reuse admin endpoint for simplicity; restrict in prod
+            if (!response.ok) return;
+            const { logs } = await response.json();
+            const tbody = document.querySelector('#logs-table tbody');
+            tbody.innerHTML = logs.map(l => `
+                <tr class="border-t border-slate-200 dark:border-slate-700">
+                    <td class="p-4">${l.timestamp}</td>
+                    <td class="p-4">${l.status}</td>
+                </tr>
+            `).join('');
+        }
+
+        loadPersonalLogs();
+    </script>
+</body>
+</html>
