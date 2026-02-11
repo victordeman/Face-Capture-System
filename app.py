@@ -1,3 +1,4 @@
+from flask_restful import reqparse
 from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, session
 from flask_restful import Api, Resource
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
@@ -89,11 +90,31 @@ class Enroll(Resource):
     @jwt_required()
     def post(self):
         current_user = get_jwt_identity()
-        data = request.form
-        name = data['name']
-        email = data['email']
-        images = [request.files[f'image{i}'] for i in range(1, 11) if f'image{i}' in request.files]
-        frames = [cv2.imdecode(np.frombuffer(img.read(), np.uint8), cv2.IMREAD_COLOR) for img in images]
+        
+        parser = reqparse.RequestParser()
+        parser.add_argument('name', type=str, required=True, help='Name is required')
+        parser.add_argument('email', type=str, required=True, help='Email is required')
+        
+        args = parser.parse_args()
+        name = args['name']
+        email = args['email']
+        
+        # Get images from multipart form
+        images = []
+        for i in range(1, 11):
+            file_key = f'image{i}'
+            if file_key in request.files:
+                images.append(request.files[file_key])
+        
+        if len(images) < 2:
+            return {'message': 'At least 2 images required for liveness check'}, 400
+        
+        frames = []
+        for img in images:
+            img_bytes = img.read()
+            frame = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
+            if frame is not None:
+                frames.append(frame)
         
         if not is_live(frames[:2]):
             return {'message': 'Liveness check failed'}, 400
@@ -106,25 +127,39 @@ class Enroll(Resource):
                 embeddings.append(face_recognition.face_encodings(rgb, face_locations)[0])
         
         if not embeddings:
-            return {'message': 'No face detected'}, 400
+            return {'message': 'No face detected in any image'}, 400
         
         avg_embedding = np.mean(embeddings, axis=0)
         encrypted = encode_embedding(avg_embedding)
         
         conn = sqlite3.connect('database.db')
         c = conn.cursor()
-        c.execute("INSERT INTO users (name, email, embedding, role, password) VALUES (?, ?, ?, ?, ?)", (name, email, encrypted, 'employee', 'defaultpass'))
+        c.execute("INSERT INTO users (name, email, embedding, role, password) VALUES (?, ?, ?, ?, ?)",
+                  (name, email, encrypted, 'employee', 'defaultpass'))
         conn.commit()
         conn.close()
         
         return {'message': 'Enrollment successful'}, 200
 
+
 class Recognize(Resource):
     @jwt_required()
     def post(self):
         current_user = get_jwt_identity()
-        image = request.files['image']
-        frame = cv2.imdecode(np.frombuffer(image.read(), np.uint8), cv2.IMREAD_COLOR)
+        
+        parser = reqparse.RequestParser()
+        parser.add_argument('image', type=reqparse.FileStorage, location='files', required=True)
+        args = parser.parse_args()
+        image_file = args['image']
+        
+        if not image_file:
+            return {'message': 'No image provided'}, 400
+        
+        img_bytes = image_file.read()
+        frame = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
+        if frame is None:
+            return {'message': 'Invalid image file'}, 400
+        
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         face_locations = face_recognition.face_locations(rgb)
         if not face_locations:
@@ -149,7 +184,7 @@ class Recognize(Resource):
         conn.close()
         return {'message': 'Face not recognized'}, 401
 
-# Admin Resources
+
 class AdminUsers(Resource):
     @jwt_required()
     def get(self):
@@ -196,17 +231,17 @@ def serve_attendance_page():
 def serve_enroll_page():
     return send_from_directory('.', 'enroll.html')
 
-@app.route('/dashboard')
-@login_required
-def serve_dashboard_page():
-    return send_from_directory('.', 'dashboard.html')
-
 @app.route('/admin')
 @login_required
 def serve_admin_dashboard():
     if session.get('role') != 'admin':
-        return redirect(url_for('serve_dashboard_page'))
+        return redirect(url_for('serve_dashboard_page'))  # Now points to real dashboard
     return send_from_directory('.', 'admin.html')
+
+@app.route('/dashboard')
+@login_required
+def serve_dashboard_page():
+    return send_from_directory('.', 'dashboard.html')
 
 # Serve index and static
 @app.route('/')
