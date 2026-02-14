@@ -11,31 +11,23 @@ import functools
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 api = Api(app)
-
-# Secret keys (same for session and JWT)
-app.secret_key = 'visage-track-2026-super-secure-key-32bytes'
+app.secret_key = 'visage-track-2026-super-secure-key-32bytes'  # Used for session and JWT
 app.config['JWT_SECRET_KEY'] = app.secret_key
 jwt = JWTManager(app)
 
-# Encryption key for face embeddings
+# Encryption key
 key = Fernet.generate_key()
 cipher = Fernet(key)
 
-# Database initialization
+# Database init
 def init_db():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users 
-                 (id INTEGER PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, role TEXT, embedding BLOB)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS attendance 
-                 (id INTEGER PRIMARY KEY, user_id INTEGER, timestamp TEXT, status TEXT)''')
-    
-    # Demo users (plain text passwords \u2013 use bcrypt hashing in real production)
-    c.execute("INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
-              ('Admin', 'admin@ex.com', 'pass123', 'admin'))
-    c.execute("INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
-              ('Employee', 'employee@ex.com', 'pass123', 'employee'))
-    
+    c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, role TEXT, embedding BLOB)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS attendance (id INTEGER PRIMARY KEY, user_id INTEGER, timestamp TEXT, status TEXT)''')
+    # Demo users
+    c.execute("INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?, ?, ?, ?)", ('Admin', 'admin@ex.com', 'pass123', 'admin'))
+    c.execute("INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?, ?, ?, ?)", ('Employee', 'employee@ex.com', 'pass123', 'employee'))
     conn.commit()
     c.execute("SELECT * FROM users")
     print("Users in DB:", c.fetchall())
@@ -43,7 +35,7 @@ def init_db():
 
 init_db()
 
-# Helper functions
+# Helpers
 def encode_embedding(embedding):
     return cipher.encrypt(embedding.tobytes())
 
@@ -58,7 +50,7 @@ def is_live(frames):
     diff = cv2.absdiff(gray1, gray2)
     return np.mean(diff) > 5
 
-# Decorator for session-based login protection (HTML pages)
+# Session-based decorator for HTML routes
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
@@ -67,17 +59,14 @@ def login_required(view):
         return view(**kwargs)
     return wrapped_view
 
-# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-# API Endpoints (Flask-RESTful for JSON-only, plain Flask for file uploads)
-# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
 class Login(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('email', type=str, required=True, help='Email is required')
         parser.add_argument('password', type=str, required=True, help='Password is required')
-        args = parser.parse_args()
+        parser.add_argument('role', type=str, required=False)  # optional
 
+        args = parser.parse_args()
         email = args['email']
         password = args['password']
 
@@ -94,116 +83,127 @@ class Login(Resource):
             return {'access_token': access_token, 'role': user[1]}
         return {'message': 'Invalid credentials'}, 401
 
-# Plain Flask route for enroll (handles files properly)
-@app.route('/api/enroll', methods=['POST'])
-@jwt_required()
-def enroll():
-    current_user = get_jwt_identity()
+class Logout(Resource):
+    def get(self):
+        session.clear()
+        return redirect(url_for('index'))
 
-    name = request.form.get('name')
-    email = request.form.get('email')
+# Updated Enroll
+class Enroll(Resource):
+    @jwt_required()
+    def post(self):
+        current_user = get_jwt_identity()
 
-    if not name or not email:
-        return jsonify({'message': 'Name and email are required'}), 400
+        parser = reqparse.RequestParser()
+        parser.add_argument('name', type=str, required=True, location='form', help='Name is required')
+        parser.add_argument('email', type=str, required=True, location='form', help='Email is required')
 
-    # Collect uploaded images
-    images = []
-    for key in request.files:
-        file = request.files[key]
-        if file and file.filename:
-            try:
-                file_bytes = file.read()
-                frame = cv2.imdecode(np.frombuffer(file_bytes, np.uint8), cv2.IMREAD_COLOR)
-                if frame is not None:
-                    images.append(frame)
-            except Exception as e:
-                print(f"Error processing file {key}: {e}")
+        args = parser.parse_args()
+        name = args['name']
+        email = args['email']
 
-    if len(images) < 2:
-        return jsonify({'message': 'At least 2 valid images are required for enrollment'}), 400
+        images = []
+        for i in range(1, 11):
+            key = f'image{i}'
+            if key in request.files:
+                file = request.files[key]
+                if file.filename != '':
+                    try:
+                        file_bytes = file.read()
+                        frame = cv2.imdecode(np.frombuffer(file_bytes, np.uint8), cv2.IMREAD_COLOR)
+                        if frame is not None:
+                            images.append(frame)
+                    except Exception as e:
+                        print(f"Error decoding image {i}: {e}")
 
-    if not is_live(images[:2]):
-        return jsonify({'message': 'Liveness check failed \u2013 no motion detected'}), 400
+        if len(images) < 2:
+            return {'message': 'Need at least 2 valid images for enrollment'}, 400
 
-    embeddings = []
-    for frame in images:
+        if not is_live(images[:2]):
+            return {'message': 'Liveness check failed (no motion detected)'}, 400
+
+        embeddings = []
+        for frame in images:
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            locations = face_recognition.face_locations(rgb)
+            if locations:
+                embeddings.append(face_recognition.face_encodings(rgb, locations)[0])
+
+        if not embeddings:
+            return {'message': 'No valid face detected in uploaded images'}, 400
+
+        avg_embedding = np.mean(embeddings, axis=0)
+        encrypted = encode_embedding(avg_embedding)
+
+        conn = sqlite3.connect('database.db')
+        c = conn.cursor()
+        try:
+            c.execute("INSERT INTO users (name, email, embedding, role, password) VALUES (?, ?, ?, ?, ?)",
+                      (name, email, encrypted, 'employee', 'defaultpass'))
+            conn.commit()
+            return {'message': 'Enrollment successful'}, 200
+        except sqlite3.IntegrityError:
+            conn.rollback()
+            return {'message': 'Email already enrolled'}, 409
+        finally:
+            conn.close()
+
+# Updated Recognize
+class Recognize(Resource):
+    @jwt_required()
+    def post(self):
+        current_user = get_jwt_identity()
+
+        parser = reqparse.RequestParser()
+        parser.add_argument('image', type=reqparse.FileStorage, location='files', required=True,
+                            help='Single image file is required')
+
+        args = parser.parse_args()
+        image_file = args['image']
+
+        if not image_file or not image_file.filename:
+            return {'message': 'No valid image file received'}, 400
+
+        try:
+            file_bytes = image_file.read()
+            frame = cv2.imdecode(np.frombuffer(file_bytes, np.uint8), cv2.IMREAD_COLOR)
+            if frame is None:
+                return {'message': 'Invalid or corrupted image file'}, 400
+        except Exception as e:
+            return {'message': f'Image processing failed: {str(e)}'}, 400
+
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         locations = face_recognition.face_locations(rgb)
-        if locations:
-            embeddings.append(face_recognition.face_encodings(rgb, locations)[0])
+        if not locations:
+            return {'message': 'No face detected in the image'}, 400
 
-    if not embeddings:
-        return jsonify({'message': 'No valid face detected in any uploaded image'}), 400
+        new_embedding = face_recognition.face_encodings(rgb, locations)[0]
 
-    avg_embedding = np.mean(embeddings, axis=0)
-    encrypted = encode_embedding(avg_embedding)
+        conn = sqlite3.connect('database.db')
+        c = conn.cursor()
+        c.execute("SELECT id, embedding FROM users")
+        users = c.fetchall()
 
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
-    try:
-        c.execute("INSERT INTO users (name, email, embedding, role, password) VALUES (?, ?, ?, ?, ?)",
-                  (name, email, encrypted, 'employee', 'defaultpass'))
-        conn.commit()
-        return jsonify({'message': 'Enrollment successful'}), 200
-    except sqlite3.IntegrityError:
-        conn.rollback()
-        return jsonify({'message': 'This email is already enrolled'}), 409
-    finally:
+        match_found = False
+        user_id = None
+        for uid, encrypted in users:
+            stored = decode_embedding(encrypted)
+            distance = face_recognition.face_distance([stored], new_embedding)[0]
+            if distance < 0.6:
+                c.execute("INSERT INTO attendance (user_id, timestamp, status) VALUES (?, datetime('now'), 'present')",
+                          (uid,))
+                conn.commit()
+                match_found = True
+                user_id = uid
+                break
+
         conn.close()
 
-# Plain Flask route for recognize (attendance clock-in)
-@app.route('/api/recognize', methods=['POST'])
-@jwt_required()
-def recognize():
-    current_user = get_jwt_identity()
+        if match_found:
+            return {'message': 'Attendance recorded with your face', 'user_id': user_id}, 200
+        return {'message': 'Face not recognized'}, 401
 
-    if 'image' not in request.files:
-        return jsonify({'message': 'No image file provided'}), 400
-
-    file = request.files['image']
-    if not file or file.filename == '':
-        return jsonify({'message': 'Invalid or empty image file'}), 400
-
-    try:
-        file_bytes = file.read()
-        frame = cv2.imdecode(np.frombuffer(file_bytes, np.uint8), cv2.IMREAD_COLOR)
-        if frame is None:
-            return jsonify({'message': 'Could not decode image'}), 400
-    except Exception as e:
-        return jsonify({'message': f'Image processing error: {str(e)}'}), 400
-
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    locations = face_recognition.face_locations(rgb)
-    if not locations:
-        return jsonify({'message': 'No face detected in the image'}), 400
-
-    new_embedding = face_recognition.face_encodings(rgb, locations)[0]
-
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
-    c.execute("SELECT id, embedding FROM users")
-    users = c.fetchall()
-
-    match_found = False
-    user_id = None
-    for uid, encrypted in users:
-        stored = decode_embedding(encrypted)
-        distance = face_recognition.face_distance([stored], new_embedding)[0]
-        if distance < 0.6:
-            c.execute("INSERT INTO attendance (user_id, timestamp, status) VALUES (?, datetime('now'), 'present')",
-                      (uid,))
-            conn.commit()
-            match_found = True
-            user_id = uid
-            break
-
-    conn.close()
-
-    if match_found:
-        return jsonify({'message': 'Attendance recorded with your face', 'user_id': user_id}), 200
-    return jsonify({'message': 'Face not recognized'}), 401
-
-# Admin APIs (unchanged \u2013 they don't need files, so RESTful is fine)
+# AdminUsers
 class AdminUsers(Resource):
     @jwt_required()
     def get(self):
@@ -218,6 +218,7 @@ class AdminUsers(Resource):
         conn.close()
         return {'users': users}
 
+# AdminAttendance
 class AdminAttendance(Resource):
     @jwt_required()
     def get(self):
@@ -236,10 +237,13 @@ class AdminAttendance(Resource):
         return {'logs': logs}
 
 api.add_resource(Login, '/api/login')
+api.add_resource(Logout, '/api/logout')
+api.add_resource(Enroll, '/api/enroll')
+api.add_resource(Recognize, '/api/recognize')
 api.add_resource(AdminUsers, '/api/admin/users')
 api.add_resource(AdminAttendance, '/api/admin/attendance')
 
-# Protected HTML pages
+# Protected pages
 @app.route('/attendance')
 @login_required
 def serve_attendance_page():
@@ -250,6 +254,11 @@ def serve_attendance_page():
 def serve_enroll_page():
     return send_from_directory('.', 'enroll.html')
 
+@app.route('/dashboard')
+@login_required
+def serve_dashboard_page():
+    return send_from_directory('.', 'dashboard.html')
+
 @app.route('/admin')
 @login_required
 def serve_admin_dashboard():
@@ -257,12 +266,7 @@ def serve_admin_dashboard():
         return redirect(url_for('serve_dashboard_page'))
     return send_from_directory('.', 'admin.html')
 
-@app.route('/dashboard')
-@login_required
-def serve_dashboard_page():
-    return send_from_directory('.', 'dashboard.html')
-
-# Static file serving
+# Serve index and static
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
