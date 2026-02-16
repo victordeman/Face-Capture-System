@@ -14,7 +14,14 @@ app.config['JWT_SECRET_KEY'] = app.secret_key
 jwt = JWTManager(app)
 
 # Encryption
-key = Fernet.generate_key()
+KEY_FILE = 'encryption.key'
+if os.path.exists(KEY_FILE):
+    with open(KEY_FILE, 'rb') as f:
+        key = f.read()
+else:
+    key = Fernet.generate_key()
+    with open(KEY_FILE, 'wb') as f:
+        f.write(key)
 cipher = Fernet(key)
 
 # Database
@@ -135,7 +142,6 @@ def api_enroll():
         conn.close()
 
 @app.route('/api/recognize', methods=['POST'])
-@jwt_required()
 def api_recognize():
     if 'image' not in request.files:
         return jsonify({'message': 'No image file'}), 400
@@ -202,9 +208,8 @@ def api_admin_attendance():
     conn.close()
     return jsonify({'logs': logs}), 200
 
-# Protected HTML pages
+# HTML Page Routes
 @app.route('/attendance')
-@login_required
 def serve_attendance_page():
     return send_from_directory('.', 'attendance.html')
 
@@ -232,7 +237,12 @@ def index():
 
 @app.route('/<path:path>')
 def static_files(path):
-    if os.path.exists(path):
+    # Security: Prevent access to sensitive files
+    forbidden_extensions = ('.db', '.py', '.key', '.txt', '.md', '.git')
+    if path.endswith(forbidden_extensions) or path.startswith('.'):
+        return redirect(url_for('index'))
+
+    if os.path.exists(path) and os.path.isfile(path):
         return send_from_directory('.', path)
     return send_from_directory('.', 'index.html')
 

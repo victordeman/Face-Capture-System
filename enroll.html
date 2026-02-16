@@ -5,44 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enroll Face - VisageTrack AI</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            900: '#4c1d95',
+                        },
+                        secondary: {
+                            500: '#06b6d4',
+                            600: '#0891b2',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 min-h-screen flex flex-col">
     <custom-navbar></custom-navbar>
 
-    <main class="flex-grow flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900 min-h-screen">
-        <div class="card max-w-2xl w-full p-10">
-            <h1 class="text-4xl font-bold text-center mb-8 text-primary">Enroll Your Face</h1>
-            <p class="text-center text-lg mb-8 text-slate-600 dark:text-slate-400">
-                Fill your details and capture your face from different angles.
-            </p>
+    <main class="flex-grow flex items-center justify-center p-6 pt-24">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-2xl w-full p-8 md:p-12 border border-slate-200 dark:border-slate-700">
+            <div class="text-center mb-10">
+                <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600 mb-4">
+                    Enroll Your Face
+                </h1>
+                <p class="text-slate-600 dark:text-slate-400">
+                    Fill in your details and capture your face to register in the system.
+                </p>
+            </div>
 
-            <form id="enroll-form" class="space-y-6">
-                <div>
-                    <label class="block text-sm font-medium mb-2">Full Name</label>
-                    <input type="text" id="name" required class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">Email</label>
-                    <input type="email" id="email" required class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800">
+            <form id="enroll-form" class="space-y-6 mb-10">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Full Name</label>
+                        <input type="text" id="name" placeholder="John Doe" required class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary-500 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
+                        <input type="email" id="email" placeholder="john@example.com" required class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary-500 outline-none transition-all">
+                    </div>
                 </div>
             </form>
 
-            <div class="video-container mb-8 mt-8">
-                <video id="video" autoplay playsinline class="w-full"></video>
+            <div class="relative group mb-8">
+                <div class="absolute -inset-1 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                <div class="relative bg-black rounded-xl overflow-hidden aspect-video border-2 border-primary-500">
+                    <video id="video" autoplay playsinline class="w-full h-full object-cover"></video>
+                    <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                        <div class="w-64 h-64 border-2 border-dashed border-primary-500/50 rounded-2xl animate-pulse"></div>
+                    </div>
+                </div>
             </div>
 
-            <div id="status" class="text-center text-lg font-medium mb-6">Camera ready</div>
+            <div id="status" class="text-center text-lg font-medium mb-8 text-slate-500">
+                Camera ready
+            </div>
 
-            <button id="enroll-btn" class="btn-primary w-full text-lg py-4 flex items-center justify-center gap-3">
+            <button id="enroll-btn" class="w-full py-4 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] flex items-center justify-center gap-3">
                 <i data-feather="user-plus"></i>
-                Enroll My Face
+                Start Face Enrollment
             </button>
         </div>
     </main>
 
     <script src="components/navbar.js"></script>
     <script src="script.js"></script>
-    <script>feather.replace();</script>
 </body>
 </html>
