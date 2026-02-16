@@ -1,129 +1,89 @@
-# VisageTrack AI - Face Recognition Attendance System
+# VisageTrack AI
 
-**Record attendance with your face** — a touchless, secure, and efficient web-based attendance tracking prototype using facial recognition.
+**VisageTrack AI** is a touchless, secure, and efficient biometric attendance tracking system. Leveraging advanced facial recognition technology, it provides a seamless way for organizations to manage attendance while ensuring data privacy and security.
 
-This project is a full-stack prototype that allows users to **record attendance with your face** via a laptop webcam. It includes:
+## 🚀 Features
 
-- Modern, responsive frontend (inspired by VisageTrack design)
-- Flask backend for face enrollment and recognition
-- Real-time facial recognition using `face_recognition` and OpenCV
-- Basic liveness detection (motion check between frames)
-- SQLite database for storing encrypted face embeddings and attendance logs
-- JWT-based authentication (basic implementation)
-- Touchless clock-in experience
+- **Biometric Enrollment**: 
+  - Effortless user registration with a 10-frame image capture process.
+  - Built-in **Liveness Detection** to prevent spoofing using photos or videos.
+- **Face Recognition Attendance**:
+  - Real-time clock-in via webcam.
+  - High-speed matching using `dlib`-based facial embeddings.
+- **Security & Privacy**:
+  - **Encrypted Embeddings**: Raw images are not stored; only encrypted numerical embeddings are kept using Fernet symmetric encryption.
+  - **Secure Authentication**: JWT-based session management for secure API access.
+  - **Password Hashing**: User passwords are securely hashed using Werkzeug.
+- **Admin Dashboard**:
+  - Comprehensive user management (Add/Delete users).
+  - Real-time attendance logs and system statistics.
+- **Modern UI**:
+  - Clean, responsive interface built with Tailwind CSS.
+  - Dark Mode support with user preference persistence.
 
-Perfect for educational institutions, small offices, or research projects — especially in resource-constrained environments like many parts of Nigeria.
+## 🛠 Tech Stack
 
-## Features
+- **Backend**: Python 3.10+, Flask, Flask-JWT-Extended, SQLite.
+- **Computer Vision**: `face_recognition` (dlib), OpenCV.
+- **Frontend**: HTML5, Tailwind CSS, Vanilla JavaScript, Feather Icons.
+- **Security**: Cryptography (Fernet), Werkzeug Security.
 
-- **Enroll Face**: Capture multiple images → generate and encrypt face embedding
-- **Clock In / Record Attendance with Your Face**: Live webcam preview → capture frame → send to backend → verify identity → log attendance
-- **Liveness Check**: Prevents photo/video spoofing with basic motion detection
-- **Privacy**: Stores only encrypted numerical embeddings (not photos)
-- **Admin-friendly**: Attendance logs stored in SQLite (easy to query/export)
-- **Responsive UI**: Tailwind CSS + dark mode support
-- **Local-first**: Runs entirely on your laptop (no cloud required for development)
-
-## Tech Stack
-
-**Frontend**
-- HTML5 + Tailwind CSS (via CDN)
-- JavaScript (vanilla + Feather Icons)
-- WebRTC for webcam access
-
-**Backend**
-- Python 3.10+
-- Flask + Flask-RESTful + Flask-JWT-Extended
-- face_recognition (dlib-based embeddings)
-- OpenCV (image processing)
-- SQLite (database)
-- cryptography (Fernet encryption for embeddings)
-
-## Prerequisites
-
-- Python 3.10 or higher
-- Git
-- Webcam-enabled laptop/computer
-- (Windows users may need Visual Studio Build Tools for dlib compilation)
-
-## Installation & Local Deployment
+## ⚙️ Installation
 
 ### 1. Clone the Repository
-
 ```bash
 git clone https://github.com/victordeman/Face-Capture-System.git
 cd Face-Capture-System
 ```
-## Step-by-Step Integration Process
 
-### 2. Clone the Repository Locally (If Not Already Done):
-
-```
-Navigate to your project folder: cd path/to/Face-Capture-System.
-If not cloned: git clone https://github.com/victordeman/Face-Capture-System.git.
-
-Create a virtual environment: python -m venv venv (activate: venv\Scripts\activate on Windows, source venv/bin/activate on macOS/Linux).
-Install dependencies: pip install flask flask-restful flask-jwt-extended face_recognition opencv-python sqlite3 cryptography.
-flask: Web framework.
-flask-restful: For APIs.
-flask-jwt-extended: For authentication.
-face_recognition: For embeddings (installs dlib automatically).
-opencv-python: For image processing.
-cryptography: For encryption.
+### 2. Set Up a Virtual Environment
+```bash
+python -m venv venv
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
 ```
 
-Create requirements.txt: pip freeze > requirements.txt (add to repo for deployment).
-
-### 3. Create Backend Files:
-
+### 3. Install Dependencies
+```bash
+pip install -r requirements.txt
 ```
-In the root folder, create app.py (main Flask app).
-Create a database.db file (SQLite will generate it).
-Update frontend JS (script.js) to send requests to backend APIs (e.g., /api/enroll, /api/recognize).
-Add liveness detection logic (basic motion check) in backend.
-```
+*Note: Windows users may need to install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) for `dlib` compilation.*
 
-### 4. Implement the Backend Code:
+## 🚀 Running the Application
 
-```
-Copy the code below into the respective files.
-This backend serves the index.html as the root, handles APIs, and records attendance with your face.
-```
+1. **Initialize the Database**: The database is automatically initialized upon the first run.
+2. **Start the Server**:
+   ```bash
+   python app.py
+   ```
+3. **Access the App**: Open [http://127.0.0.1:5000](http://127.0.0.1:5000) in your web browser.
 
-### 5. Test Locally:
+## 👤 Default Credentials
 
-```
-Run: python app.py.
-Open http://127.0.0.1:5000 in browser.
-Test enrollment: Navigate to enroll form, capture face—it sends to backend to store embedding.
-Test attendance: Capture frame, backend recognizes and logs if match, recording attendance with your face.
-```
+- **Admin**: `admin@ex.com` / `pass123`
+- **Employee**: `employee@ex.com` / `pass123`
 
-### 6. Commit and Push Changes:
+## 📁 Project Structure
 
-```
-git add .
-git commit -m "Integrate Flask backend for face recognition and attendance logging"
-git push origin main
-```
+- `app.py`: Main Flask backend handling API routes and biometric processing.
+- `script.js`: Modular frontend logic for camera handling, API calls, and UI updates.
+- `index.html`: Login and landing page.
+- `dashboard.html`: Employee portal for viewing attendance logs.
+- `attendance.html`: Public clock-in interface.
+- `enroll.html`: User registration and biometric capture interface.
+- `admin.html`: Administrative management dashboard.
+- `components/`: Reusable frontend components (e.g., Navbar).
+- `requirements.txt`: Project dependencies.
 
-### 7. Deploy to a Hosting Platform (e.g., Render):
+## 🔒 Security Note
 
-```
-Go to render.com, sign up, create a new "Web Service".
-Connect your GitHub repo.
-Set: Runtime = Python, Build Command = pip install -r requirements.txt, Start Command = python app.py.
-Environment variables: None needed initially.
-Deploy—Render builds and hosts. URL: e.g., https://your-app.onrender.com.
-For webcam: Ensure HTTPS (Render provides it) as browsers require secure context for camera access.
-In Nigeria, use a VPN if deployment fails due to network issues.
-```
+This project is a prototype. For production use:
+- Ensure the application is served over **HTTPS** (required for camera access in most browsers).
+- Migrate from SQLite to a production-grade database like PostgreSQL.
+- Implement more robust liveness detection mechanisms.
+- Secure the `encryption.key` and `JWT_SECRET_KEY` using environment variables.
 
-### 8. Troubleshooting:
-
-```
-Errors with dlib/face_recognition: Ensure CMake is installed (for building dlib).
-Database issues: Check permissions.
-Webcam: Frontend must use HTTPS for production.
-Scale: For production, migrate to PostgreSQL and add worker queues.
-```
+---
+Developed with ❤️ by [Victor Deman](https://github.com/victordeman)
