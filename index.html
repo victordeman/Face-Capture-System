@@ -5,44 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VisageTrack AI - Face Recognition Attendance</title>
     <link rel="stylesheet" href="style.css">
+    <script src="tailwind-config.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f5f3ff',
-                            100: '#ede9fe',
-                            500: '#8b5cf6',
-                            600: '#7c3aed',
-                            700: '#6d28d9',
-                            900: '#4c1d95',
-                        },
-                        secondary: {
-                            500: '#06b6d4',
-                            600: '#0891b2',
-                        }
-                    },
-                    animation: {
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'scan': 'scan 2s linear infinite',
-                    },
-                    keyframes: {
-                        scan: {
-                            '0%': { transform: 'translateY(-100%)' },
-                            '100%': { transform: 'translateY(100%)' }
-                        }
-                    }
-                }
-            }
-        }
-    </script>
 </head>
-<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300">
+<body class="transition-colors duration-300">
     <custom-navbar></custom-navbar>
 
     <!-- Hero Section -->
@@ -75,8 +43,8 @@
                 </p>
 
                 <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                    <a href="/attendance" class="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold shadow-lg shadow-primary-500/30 transition-all hover:scale-105 group">
-                        <i data-feather="camera" class="mr-2 w-5 h-5"></i>
+                    <a href="/attendance" class="btn-primary px-8 py-4">
+                        <i data-feather="camera" class="w-5 h-5"></i>
                         Clock In Now
                     </a>
                     <a href="/enroll" class="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold border-2 border-slate-200 dark:border-slate-700 hover:border-primary-500 dark:hover:border-primary-500 transition-all hover:scale-105">
@@ -105,7 +73,7 @@
             <!-- Right Content - Interactive Demo Card -->
             <div class="relative">
                 <div class="absolute -inset-4 bg-gradient-to-r from-primary-500 to-secondary-500 rounded-2xl blur-2xl opacity-20 animate-pulse-slow"></div>
-                <div class="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-200 dark:border-slate-700">
+                <div class="relative card p-8">
                     <div class="flex items-center justify-between mb-6">
                         <div class="flex items-center space-x-3">
                             <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white">
@@ -163,7 +131,7 @@
 
                         <div id="login-error" class="hidden text-sm text-red-500 font-medium text-center"></div>
 
-                        <button type="submit" id="login-btn" class="w-full py-3 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] flex items-center justify-center">
+                        <button type="submit" id="login-btn" class="btn-primary w-full py-3">
                             <span>Sign In to Dashboard</span>
                         </button>
 
@@ -195,7 +163,7 @@
             </div>
 
             <div class="grid md:grid-cols-3 gap-8">
-                <div class="group p-8 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary-500 dark:hover:border-primary-500 transition-all hover:shadow-xl">
+                <div class="group card p-8 bg-slate-50 dark:bg-slate-800 hover:border-primary-500 transition-all hover:shadow-xl">
                     <div class="w-14 h-14 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                         <i data-feather="zap" class="w-7 h-7"></i>
                     </div>
@@ -203,7 +171,7 @@
                     <p class="text-slate-600 dark:text-slate-300">AI-powered face detection recognizes users in under 2 seconds with 99.8% accuracy, eliminating queues and wait times.</p>
                 </div>
 
-                <div class="group p-8 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-secondary-500 dark:hover:border-secondary-500 transition-all hover:shadow-xl">
+                <div class="group card p-8 bg-slate-50 dark:bg-slate-800 hover:border-secondary-500 transition-all hover:shadow-xl">
                     <div class="w-14 h-14 rounded-xl bg-secondary-100 dark:bg-secondary-900/30 text-secondary-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                         <i data-feather="shield-check" class="w-7 h-7"></i>
                     </div>
@@ -211,7 +179,7 @@
                     <p class="text-slate-600 dark:text-slate-300">Advanced liveness detection prevents spoofing attempts using photos or videos. Anti-proxy attendance guaranteed.</p>
                 </div>
 
-                <div class="group p-8 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-all hover:shadow-xl">
+                <div class="group card p-8 bg-slate-50 dark:bg-slate-800 hover:border-emerald-500 transition-all hover:shadow-xl">
                     <div class="w-14 h-14 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                         <i data-feather="wifi-off" class="w-7 h-7"></i>
                     </div>

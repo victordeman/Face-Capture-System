@@ -5,40 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - VisageTrack AI</title>
     <link rel="stylesheet" href="style.css">
+    <script src="tailwind-config.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f5f3ff',
-                            100: '#ede9fe',
-                            500: '#8b5cf6',
-                            600: '#7c3aed',
-                            700: '#6d28d9',
-                            900: '#4c1d95',
-                        },
-                        secondary: {
-                            500: '#06b6d4',
-                            600: '#0891b2',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
 </head>
-<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 min-h-screen flex flex-col">
+<body class="transition-colors duration-300">
     <custom-navbar></custom-navbar>
 
     <main class="flex-grow p-6 pt-24 max-w-7xl mx-auto w-full">
         <div class="grid lg:grid-cols-3 gap-8">
             <!-- Left: Profile & Quick Actions -->
             <div class="lg:col-span-1 space-y-8">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
+                <div class="card p-8">
                     <div class="text-center">
                         <div class="w-24 h-24 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 mx-auto mb-4 flex items-center justify-center text-white">
                             <i data-feather="user" class="w-12 h-12"></i>
@@ -47,8 +25,8 @@
                         <p class="text-slate-500 text-sm mb-6">Employee Dashboard</p>
                     </div>
                     <div class="space-y-4">
-                        <a href="/attendance" class="block w-full py-3 rounded-xl bg-primary-600 text-white text-center font-semibold hover:bg-primary-700 transition shadow-lg">
-                            <i data-feather="camera" class="inline-block mr-2 w-4 h-4"></i> Clock In Now
+                        <a href="/attendance" class="btn-primary w-full py-3">
+                            <i data-feather="camera" class="w-4 h-4"></i> Clock In Now
                         </a>
                         <a href="/enroll" class="block w-full py-3 rounded-xl border-2 border-primary-600 text-primary-600 text-center font-semibold hover:bg-primary-50 dark:hover:bg-primary-900/20 transition">
                             <i data-feather="user-plus" class="inline-block mr-2 w-4 h-4"></i> Update Face
@@ -56,7 +34,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
+                <div class="card p-8">
                     <h3 class="font-bold mb-4">Quick Stats</h3>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
@@ -73,7 +51,7 @@
 
             <!-- Right: Recent Activity -->
             <div class="lg:col-span-2">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700 min-h-[500px]">
+                <div class="card p-8 min-h-[500px]">
                     <div class="flex items-center justify-between mb-8">
                         <h3 class="text-2xl font-bold">Your Attendance History</h3>
                         <button onclick="fetchAndDisplayLogs()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">

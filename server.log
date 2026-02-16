@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/app/app.py", line 5, in <module>
+    import face_recognition
+ModuleNotFoundError: No module named 'face_recognition'
