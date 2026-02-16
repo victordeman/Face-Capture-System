@@ -9,26 +9,24 @@ import os
 import functools
 
 app = Flask(__name__, static_folder='.', static_url_path='')
-app.secret_key = 'visage-track-2026-super-secure-key-32bytes'  # Used for session and JWT
+app.secret_key = 'visage-track-2026-super-secure-key-32bytes'
 app.config['JWT_SECRET_KEY'] = app.secret_key
 jwt = JWTManager(app)
 
-# Encryption key
+# Encryption
 key = Fernet.generate_key()
 cipher = Fernet(key)
 
-# Database init
+# Database
 def init_db():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, role TEXT, embedding BLOB)''')
     c.execute('''CREATE TABLE IF NOT EXISTS attendance (id INTEGER PRIMARY KEY, user_id INTEGER, timestamp TEXT, status TEXT)''')
-    # Demo users
     c.execute("INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?, ?, ?, ?)", ('Admin', 'admin@ex.com', 'pass123', 'admin'))
     c.execute("INSERT OR IGNORE INTO users (name, email, password, role) VALUES (?, ?, ?, ?)", ('Employee', 'employee@ex.com', 'pass123', 'employee'))
     conn.commit()
-    c.execute("SELECT * FROM users")
-    print("Users in DB:", c.fetchall())
+    print("Users in DB:", c.execute("SELECT * FROM users").fetchall())
     conn.close()
 
 init_db()
@@ -45,10 +43,9 @@ def is_live(frames):
         return False
     gray1 = cv2.cvtColor(frames[0], cv2.COLOR_BGR2GRAY)
     gray2 = cv2.cvtColor(frames[1], cv2.COLOR_BGR2GRAY)
-    diff = cv2.absdiff(gray1, gray2)
-    return np.mean(diff) > 5
+    return np.mean(cv2.absdiff(gray1, gray2)) > 5
 
-# Session-based decorator for HTML routes
+# Session decorator for HTML pages
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
@@ -57,14 +54,15 @@ def login_required(view):
         return view(**kwargs)
     return wrapped_view
 
-# Native API Routes (no Flask-RESTful)
+# ====================== API ROUTES ======================
+
 @app.route('/api/login', methods=['POST'])
 def api_login():
     data = request.json
     email = data.get('email')
     password = data.get('password')
     if not email or not password:
-        return jsonify({'message': 'Email and password are required'}), 400
+        return jsonify({'message': 'Email and password required'}), 400
 
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
@@ -75,19 +73,16 @@ def api_login():
     if user:
         session['user_id'] = user[0]
         session['role'] = user[1]
-        access_token = create_access_token(identity={'id': user[0], 'role': user[1]})
-        return jsonify({'access_token': access_token, 'role': user[1]}), 200
+        token = create_access_token(identity={'id': user[0], 'role': user[1]})
+        return jsonify({'access_token': token, 'role': user[1]}), 200
     return jsonify({'message': 'Invalid credentials'}), 401
-
-@app.route('/api/logout', methods=['GET'])
-def api_logout():
-    session.clear()
-    return redirect(url_for('index'))
 
 @app.route('/api/enroll', methods=['POST'])
 @jwt_required()
 def api_enroll():
-    current_user = get_jwt_identity()
+    print("=== ENROLL REQUEST RECEIVED ===")
+    print("Form data:", dict(request.form))
+    print("Files received:", list(request.files.keys()))
 
     name = request.form.get('name')
     email = request.form.get('email')
@@ -96,17 +91,20 @@ def api_enroll():
 
     images = []
     for i in range(1, 11):
-        key = f'image{i}'
-        if key in request.files:
-            file = request.files[key]
-            if file and file.filename != '':
+        file = request.files.get(f'image{i}')
+        if file and file.filename:
+            try:
                 file_bytes = file.read()
                 frame = cv2.imdecode(np.frombuffer(file_bytes, np.uint8), cv2.IMREAD_COLOR)
                 if frame is not None:
                     images.append(frame)
+            except Exception as e:
+                print(f"Error reading image {i}: {e}")
+
+    print(f"Valid images captured: {len(images)}")
 
     if len(images) < 2:
-        return jsonify({'message': 'Need at least 2 valid images for enrollment'}), 400
+        return jsonify({'message': 'At least 2 images required'}), 400
 
     if not is_live(images[:2]):
         return jsonify({'message': 'Liveness check failed'}), 400
@@ -132,15 +130,13 @@ def api_enroll():
         conn.commit()
         return jsonify({'message': 'Enrollment successful'}), 200
     except sqlite3.IntegrityError:
-        return jsonify({'message': 'Email already exists'}), 400
+        return jsonify({'message': 'Email already enrolled'}), 400
     finally:
         conn.close()
 
 @app.route('/api/recognize', methods=['POST'])
 @jwt_required()
 def api_recognize():
-    current_user = get_jwt_identity()
-
     if 'image' not in request.files:
         return jsonify({'message': 'No image file'}), 400
 
@@ -165,25 +161,19 @@ def api_recognize():
     c.execute("SELECT id, embedding FROM users")
     users = c.fetchall()
 
-    match_found = False
-    user_id = None
     for uid, encrypted in users:
         stored = decode_embedding(encrypted)
         distance = face_recognition.face_distance([stored], new_embedding)[0]
         if distance < 0.6:
-            c.execute("INSERT INTO attendance (user_id, timestamp, status) VALUES (?, datetime('now'), 'present')",
-                      (uid,))
+            c.execute("INSERT INTO attendance (user_id, timestamp, status) VALUES (?, datetime('now'), 'present')", (uid,))
             conn.commit()
-            match_found = True
-            user_id = uid
-            break
+            conn.close()
+            return jsonify({'message': 'Attendance recorded with your face', 'user_id': uid}), 200
 
     conn.close()
-
-    if match_found:
-        return jsonify({'message': 'Attendance recorded with your face', 'user_id': user_id}), 200
     return jsonify({'message': 'Face not recognized'}), 401
 
+# Admin APIs
 @app.route('/api/admin/users', methods=['GET'])
 @jwt_required()
 def api_admin_users():
@@ -204,18 +194,15 @@ def api_admin_attendance():
     current_user = get_jwt_identity()
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
-
     if current_user['role'] == 'admin':
         c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id ORDER BY a.timestamp DESC")
     else:
-        c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id WHERE u.id = ? ORDER BY a.timestamp DESC",
-                  (current_user['id'],))
-
+        c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id WHERE u.id = ? ORDER BY a.timestamp DESC", (current_user['id'],))
     logs = [{'id': row[0], 'name': row[1], 'timestamp': row[2], 'status': row[3]} for row in c.fetchall()]
     conn.close()
     return jsonify({'logs': logs}), 200
 
-# Protected pages
+# Protected HTML pages
 @app.route('/attendance')
 @login_required
 def serve_attendance_page():
@@ -238,7 +225,7 @@ def serve_admin_dashboard():
         return redirect(url_for('serve_dashboard_page'))
     return send_from_directory('.', 'admin.html')
 
-# Serve index and static
+# Static serving
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
