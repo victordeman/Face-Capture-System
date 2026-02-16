@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, session
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity, get_jwt
 import sqlite3
 import numpy as np
 import face_recognition
@@ -73,7 +73,8 @@ def api_login():
     if user:
         session['user_id'] = user[0]
         session['role'] = user[1]
-        token = create_access_token(identity={'id': user[0], 'role': user[1]})
+        # Use string identity for 'sub' claim and additional_claims for role to stay stateless
+        token = create_access_token(identity=str(user[0]), additional_claims={"role": user[1]})
         return jsonify({'access_token': token, 'role': user[1]}), 200
     return jsonify({'message': 'Invalid credentials'}), 401
 
@@ -177,8 +178,8 @@ def api_recognize():
 @app.route('/api/admin/users', methods=['GET'])
 @jwt_required()
 def api_admin_users():
-    current_user = get_jwt_identity()
-    if current_user['role'] != 'admin':
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
         return jsonify({'message': 'Admin access required'}), 403
 
     conn = sqlite3.connect('database.db')
@@ -191,13 +192,15 @@ def api_admin_users():
 @app.route('/api/admin/attendance', methods=['GET'])
 @jwt_required()
 def api_admin_attendance():
-    current_user = get_jwt_identity()
+    identity = get_jwt_identity()
+    claims = get_jwt()
+    role = claims.get('role')
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
-    if current_user['role'] == 'admin':
+    if role == 'admin':
         c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id ORDER BY a.timestamp DESC")
     else:
-        c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id WHERE u.id = ? ORDER BY a.timestamp DESC", (current_user['id'],))
+        c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id WHERE u.id = ? ORDER BY a.timestamp DESC", (identity,))
     logs = [{'id': row[0], 'name': row[1], 'timestamp': row[2], 'status': row[3]} for row in c.fetchall()]
     conn.close()
     return jsonify({'logs': logs}), 200
