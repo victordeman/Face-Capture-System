@@ -45,6 +45,15 @@ if (loginForm) {
   });
 }
 
+// Helper to get auth headers
+function getAuthHeaders(headers = {}) {
+  const token = localStorage.getItem('jwt_token');
+  if (token && token !== 'null' && token !== 'undefined') {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 // Record Attendance (on attendance.html)
 async function recordAttendance(video, status, clockInBtn) {
   clockInBtn.disabled = true;
@@ -60,10 +69,9 @@ async function recordAttendance(video, status, clockInBtn) {
   formData.append('image', blob, 'capture.jpg');
 
   try {
-    const token = localStorage.getItem('jwt_token');
     const response = await fetch('/api/recognize', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: getAuthHeaders(),
       body: formData
     });
     const data = await response.json();
@@ -110,9 +118,8 @@ const logsContainer = document.getElementById('logs');
 if (logsContainer) {
   async function fetchLogs() {
     try {
-      const token = localStorage.getItem('jwt_token');
       const response = await fetch('/api/logs', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: getAuthHeaders()
       });
       const data = await response.json();
       if (response.ok) {
@@ -126,7 +133,8 @@ if (logsContainer) {
           </div>
         `).join('') || '<p class="text-center text-slate-500 py-8">No attendance logs found yet.</p>';
       } else if (response.status === 401 || response.status === 422) {
-        window.location.href = '/';
+        localStorage.removeItem('jwt_token');
+        if (window.location.pathname !== '/') window.location.href = '/';
       }
     } catch (err) {
       console.error('Error fetching logs:', err);

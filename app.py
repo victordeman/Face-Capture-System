@@ -11,10 +11,30 @@ import functools
 app = Flask(__name__)
 app.secret_key = 'visage-track-2026-super-secure-key-32bytes'
 app.config['JWT_SECRET_KEY'] = app.secret_key
+app.config['JWT_ERROR_MESSAGE_KEY'] = 'message'
 jwt = JWTManager(app)
 
-# Encryption
-key = Fernet.generate_key()
+@jwt.invalid_token_loader
+def invalid_token_callback(error):
+    return jsonify({'message': 'Invalid token', 'error': str(error)}), 422
+
+@jwt.unauthorized_loader
+def missing_token_callback(error):
+    return jsonify({'message': 'Missing token', 'error': str(error)}), 401
+
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return jsonify({'message': 'Token has expired'}), 401
+
+# Encryption - Persistent key
+key_file = 'encryption.key'
+if os.path.exists(key_file):
+    with open(key_file, 'rb') as f:
+        key = f.read()
+else:
+    key = Fernet.generate_key()
+    with open(key_file, 'wb') as f:
+        f.write(key)
 cipher = Fernet(key)
 
 # Database
@@ -79,7 +99,7 @@ def api_login():
     return jsonify({'message': 'Invalid credentials'}), 401
 
 @app.route('/api/enroll', methods=['POST'])
-@jwt_required()
+@jwt_required(optional=True)
 def api_enroll():
     print("=== ENROLL REQUEST RECEIVED ===")
     print("Form data:", dict(request.form))
@@ -136,7 +156,7 @@ def api_enroll():
         conn.close()
 
 @app.route('/api/recognize', methods=['POST'])
-@jwt_required()
+@jwt_required(optional=True)
 def api_recognize():
     if 'image' not in request.files:
         return jsonify({'message': 'No image file'}), 400
@@ -189,26 +209,41 @@ def api_admin_users():
     conn.close()
     return jsonify({'users': users}), 200
 
-@app.route('/api/admin/attendance', methods=['GET'])
-@jwt_required()
-def api_admin_attendance():
-    identity = get_jwt_identity()
-    claims = get_jwt()
-    role = claims.get('role')
+def get_attendance_logs(identity, role):
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     if role == 'admin':
         c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id ORDER BY a.timestamp DESC")
     else:
+        # If no identity, return empty list (for optional JWT)
+        if not identity:
+            return []
         c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id WHERE u.id = ? ORDER BY a.timestamp DESC", (int(identity),))
     logs = [{'id': row[0], 'name': row[1], 'timestamp': row[2], 'status': row[3]} for row in c.fetchall()]
     conn.close()
+    return logs
+
+@app.route('/api/admin/attendance', methods=['GET'])
+@jwt_required()
+def api_admin_attendance():
+    identity = get_jwt_identity()
+    role = get_jwt().get('role')
+    logs = get_attendance_logs(identity, role)
     return jsonify({'logs': logs}), 200
 
 @app.route('/api/logs', methods=['GET'])
-@jwt_required()
+@jwt_required(optional=True)
 def api_logs():
-    return api_admin_attendance()
+    identity = get_jwt_identity()
+    role = get_jwt().get('role') if identity else None
+
+    # Fallback to session if JWT is missing
+    if not identity and 'user_id' in session:
+        identity = session['user_id']
+        role = session.get('role')
+
+    logs = get_attendance_logs(identity, role)
+    return jsonify({'logs': logs}), 200
 
 # Protected HTML pages
 @app.route('/attendance')

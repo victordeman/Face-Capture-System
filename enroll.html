@@ -151,12 +151,15 @@
             });
 
             try {
+                const headers = {};
                 const token = localStorage.getItem('jwt_token');
+                if (token && token !== 'null' && token !== 'undefined') {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
                 const response = await fetch('/api/enroll', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
+                    headers: headers,
                     body: formData
                 });
 
