@@ -1,12 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - VisageTrack AI</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -30,64 +29,35 @@
             }
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 </head>
-<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 min-h-screen flex flex-col">
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300">
     <custom-navbar></custom-navbar>
 
-    <main class="flex-grow p-6 pt-24 max-w-7xl mx-auto w-full">
-        <div class="grid lg:grid-cols-3 gap-8">
-            <!-- Left: Profile & Quick Actions -->
-            <div class="lg:col-span-1 space-y-8">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
-                    <div class="text-center">
-                        <div class="w-24 h-24 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 mx-auto mb-4 flex items-center justify-center text-white">
-                            <i data-feather="user" class="w-12 h-12"></i>
-                        </div>
-                        <h2 class="text-2xl font-bold mb-1">Welcome Back</h2>
-                        <p class="text-slate-500 text-sm mb-6">Employee Dashboard</p>
-                    </div>
-                    <div class="space-y-4">
-                        <a href="/attendance" class="block w-full py-3 rounded-xl bg-primary-600 text-white text-center font-semibold hover:bg-primary-700 transition shadow-lg">
-                            <i data-feather="camera" class="inline-block mr-2 w-4 h-4"></i> Clock In Now
-                        </a>
-                        <a href="/enroll" class="block w-full py-3 rounded-xl border-2 border-primary-600 text-primary-600 text-center font-semibold hover:bg-primary-50 dark:hover:bg-primary-900/20 transition">
-                            <i data-feather="user-plus" class="inline-block mr-2 w-4 h-4"></i> Update Face
-                        </a>
-                    </div>
-                </div>
-
-                <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700">
-                    <h3 class="font-bold mb-4">Quick Stats</h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
-                            <p class="text-emerald-600 dark:text-emerald-400 text-sm">Present</p>
-                            <p class="text-2xl font-bold">22</p>
-                        </div>
-                        <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
-                            <p class="text-red-600 dark:text-red-400 text-sm">Absent</p>
-                            <p class="text-2xl font-bold">2</p>
-                        </div>
-                    </div>
-                </div>
+    <main class="flex-grow flex items-center justify-center p-6">
+        <div class="text-center max-w-2xl">
+            <h1 class="text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600">
+                Welcome to Your Dashboard
+            </h1>
+            <p class="text-xl text-slate-600 dark:text-slate-300 mb-8">
+                You are logged in. From here you can quickly **record attendance with your face** or manage your profile.
+            </p>
+            <div class="flex justify-center gap-6 mb-12">
+                <a href="/attendance" class="px-8 py-4 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition shadow-lg">
+                    <i data-feather="camera" class="inline mr-2"></i> Clock In Now
+                </a>
+                <a href="/enroll" class="px-8 py-4 border-2 border-primary-600 text-primary-600 rounded-xl hover:bg-primary-50 transition">
+                    <i data-feather="user-plus" class="inline mr-2"></i> Update Face Enrollment
+                </a>
             </div>
 
-            <!-- Right: Recent Activity -->
-            <div class="lg:col-span-2">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-xl border border-slate-200 dark:border-slate-700 min-h-[500px]">
-                    <div class="flex items-center justify-between mb-8">
-                        <h3 class="text-2xl font-bold">Your Attendance History</h3>
-                        <button onclick="fetchAndDisplayLogs()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                            <i data-feather="refresh-cw" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                    
-                    <div id="logs" class="space-y-4">
-                        <div class="animate-pulse space-y-4">
-                            <div class="h-16 bg-slate-100 dark:bg-slate-700 rounded-xl"></div>
-                            <div class="h-16 bg-slate-100 dark:bg-slate-700 rounded-xl"></div>
-                            <div class="h-16 bg-slate-100 dark:bg-slate-700 rounded-xl"></div>
-                        </div>
-                    </div>
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 border border-slate-200 dark:border-slate-700 text-left w-full max-w-4xl mx-auto">
+                <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                    <i data-feather="history" class="text-primary-600"></i>
+                    Your Recent Attendance
+                </h2>
+                <div id="logs" class="space-y-3">
+                    <p class="text-center text-slate-500 py-4">Loading your records...</p>
                 </div>
             </div>
         </div>
@@ -95,5 +65,6 @@
 
     <script src="components/navbar.js"></script>
     <script src="script.js"></script>
+    <script>feather.replace();</script>
 </body>
 </html>
