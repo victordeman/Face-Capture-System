@@ -11,6 +11,7 @@ import logging
 import uuid
 from contextlib import contextmanager
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.exceptions import HTTPException
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -124,6 +125,10 @@ def log_request_info():
 
 @app.errorhandler(Exception)
 def handle_error(e):
+    # Pass through HTTP errors
+    if isinstance(e, HTTPException):
+        return e
+
     logger.error(f"Error: {str(e)}", exc_info=True)
     return jsonify({'message': 'An internal error occurred', 'error': str(e)}), 500
 
@@ -280,14 +285,20 @@ def api_admin_attendance():
     user_id = get_jwt_identity()
     with get_db() as conn:
         c = conn.cursor()
-        c.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+        c.execute("SELECT id, role FROM users WHERE id = ?", (user_id,))
         user = c.fetchone()
+
+        if not user:
+            return jsonify({'message': 'User not found', 'logs': []}), 404
 
         if user['role'] == 'admin':
             c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id ORDER BY a.timestamp DESC")
         else:
-            c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id WHERE u.id = ? ORDER BY a.timestamp DESC", (user_id,))
+            c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id WHERE u.id = ? ORDER BY a.timestamp DESC", (user['id'],))
+
         logs = [dict(row) for row in c.fetchall()]
+        logger.info(f"Retrieved {len(logs)} logs for user {user_id}")
+
     return jsonify({'message': 'Logs retrieved successfully', 'logs': logs}), 200
 
 @app.route('/api/admin/users', methods=['GET'])
