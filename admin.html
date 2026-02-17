@@ -99,7 +99,7 @@
                             <i data-feather="activity" class="mr-2 w-5 h-5 text-secondary-600"></i>
                             Recent Activity
                         </h2>
-                        <button onclick="loadData()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-500">
+                        <button id="refresh-admin" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-500">
                             <i data-feather="refresh-cw" class="w-4 h-4"></i>
                         </button>
                     </div>
@@ -124,100 +124,5 @@
 
     <script src="components/navbar.js"></script>
     <script src="script.js"></script>
-    <script>
-        async function loadData() {
-            const token = localStorage.getItem('jwt_token');
-            if (!token) {
-                window.location.href = '/';
-                return;
-            }
-
-            try {
-                // Fetch Stats
-                const statsRes = await fetch('/api/admin/stats', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (statsRes.ok) {
-                    const stats = await statsRes.json();
-                    document.getElementById('stat-total-users').textContent = stats.total_users;
-                    document.getElementById('stat-today-attendance').textContent = stats.today_attendance;
-                }
-
-                // Fetch Users
-                const usersRes = await fetch('/api/admin/users', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (usersRes.ok) {
-                    const data = await usersRes.json();
-                    const list = document.getElementById('users-list');
-                    list.innerHTML = data.users.map(user => `
-                        <tr>
-                            <td class="px-6 py-4">
-                                <div class="font-medium text-slate-900 dark:text-white">${user.name}</div>
-                                <div class="text-sm text-slate-500">${user.email}</div>
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <button onclick="deleteUser(${user.id})" class="text-red-500 hover:text-red-700 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
-                                    <i data-feather="trash-2" class="w-5 h-5"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `).join('');
-                }
-
-                // Fetch Logs
-                const logsRes = await fetch('/api/admin/attendance', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (logsRes.ok) {
-                    const data = await logsRes.json();
-                    const list = document.getElementById('logs-list');
-                    list.innerHTML = data.logs.map(log => `
-                        <tr>
-                            <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">${log.name}</td>
-                            <td class="px-6 py-4 text-slate-500 text-sm">${log.timestamp}</td>
-                            <td class="px-6 py-4 text-right">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
-                                    ${log.status.toUpperCase()}
-                                </span>
-                            </td>
-                        </tr>
-                    `).join('');
-                }
-
-                document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
-                feather.replace();
-
-            } catch (err) {
-                console.error('Error loading admin data:', err);
-            }
-        }
-
-        async function deleteUser(userId) {
-            if (!confirm('Are you sure you want to delete this user? All their attendance records will also be removed.')) {
-                return;
-            }
-
-            const token = localStorage.getItem('jwt_token');
-            try {
-                const response = await fetch(`/api/admin/users/${userId}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    loadData();
-                } else {
-                    alert(data.message || 'Error deleting user');
-                }
-            } catch (err) {
-                console.error('Error:', err);
-                alert('Connection error');
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', loadData);
-        feather.replace();
-    </script>
 </body>
 </html>

@@ -203,6 +203,21 @@ def api_recognize():
     return jsonify({'message': 'Face not recognized'}), 401
 
 # Admin APIs
+@app.route('/api/admin/stats', methods=['GET'])
+@jwt_required()
+def api_admin_stats():
+    current_user = get_jwt_identity()
+    if current_user['role'] != 'admin':
+        return jsonify({'message': 'Admin access required'}), 403
+
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM users")
+        total_users = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM attendance WHERE date(timestamp) = date('now')")
+        today_attendance = c.fetchone()[0]
+    return jsonify({'total_users': total_users, 'today_attendance': today_attendance}), 200
+
 @app.route('/api/admin/users', methods=['GET'])
 @jwt_required()
 def api_admin_users():
@@ -215,6 +230,20 @@ def api_admin_users():
         c.execute("SELECT id, name, email, role FROM users")
         users = [dict(row) for row in c.fetchall()]
     return jsonify({'users': users}), 200
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def api_admin_delete_user(user_id):
+    current_user = get_jwt_identity()
+    if current_user['role'] != 'admin':
+        return jsonify({'message': 'Admin access required'}), 403
+
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        c.execute("DELETE FROM attendance WHERE user_id = ?", (user_id,))
+        conn.commit()
+    return jsonify({'message': 'User and their attendance records deleted successfully'}), 200
 
 @app.route('/api/admin/attendance', methods=['GET'])
 @jwt_required()
