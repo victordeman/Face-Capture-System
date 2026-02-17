@@ -8,7 +8,7 @@ from cryptography.fernet import Fernet
 import os
 import functools
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=None)
 app.secret_key = 'visage-track-2026-super-secure-key-32bytes'
 app.config['JWT_SECRET_KEY'] = app.secret_key
 app.config['JWT_ERROR_MESSAGE_KEY'] = 'message'
@@ -26,8 +26,11 @@ def missing_token_callback(error):
 def expired_token_callback(jwt_header, jwt_payload):
     return jsonify({'message': 'Token has expired'}), 401
 
+# Paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Encryption - Persistent key
-key_file = 'encryption.key'
+key_file = os.path.join(BASE_DIR, 'encryption.key')
 if os.path.exists(key_file):
     with open(key_file, 'rb') as f:
         key = f.read()
@@ -39,7 +42,7 @@ cipher = Fernet(key)
 
 # Database
 def init_db():
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(os.path.join(BASE_DIR, 'database.db'))
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, email TEXT UNIQUE, password TEXT, role TEXT, embedding BLOB)''')
     c.execute('''CREATE TABLE IF NOT EXISTS attendance (id INTEGER PRIMARY KEY, user_id INTEGER, timestamp TEXT, status TEXT)''')
@@ -84,7 +87,7 @@ def api_login():
     if not email or not password:
         return jsonify({'message': 'Email and password required'}), 400
 
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(os.path.join(BASE_DIR, 'database.db'))
     c = conn.cursor()
     c.execute("SELECT id, role FROM users WHERE email = ? AND password = ?", (email, password))
     user = c.fetchone()
@@ -143,14 +146,23 @@ def api_enroll():
     avg_embedding = np.mean(embeddings, axis=0)
     encrypted = encode_embedding(avg_embedding)
 
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(os.path.join(BASE_DIR, 'database.db'))
     c = conn.cursor()
     try:
         # Check if user already exists
         c.execute("SELECT id FROM users WHERE email = ?", (email,))
         user = c.fetchone()
 
+        current_identity = get_jwt_identity()
+
         if user:
+            # If user exists, require authentication as that user to update
+            if not current_identity:
+                return jsonify({'message': 'User already exists. Please login to update your face enrollment.'}), 400
+
+            if str(user[0]) != str(current_identity):
+                return jsonify({'message': 'Unauthorized: You can only update your own enrollment.'}), 403
+
             # Update existing user's name and embedding
             c.execute("UPDATE users SET name = ?, embedding = ? WHERE id = ?",
                       (name, encrypted, user[0]))
@@ -191,7 +203,7 @@ def api_recognize():
 
     new_embedding = face_recognition.face_encodings(rgb, locations)[0]
 
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(os.path.join(BASE_DIR, 'database.db'))
     c = conn.cursor()
     c.execute("SELECT id, embedding FROM users")
     users = c.fetchall()
@@ -216,7 +228,7 @@ def api_admin_users():
     if claims.get('role') != 'admin':
         return jsonify({'message': 'Admin access required'}), 403
 
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(os.path.join(BASE_DIR, 'database.db'))
     c = conn.cursor()
     c.execute("SELECT id, name, email, role FROM users")
     users = [{'id': row[0], 'name': row[1], 'email': row[2], 'role': row[3]} for row in c.fetchall()]
@@ -224,7 +236,7 @@ def api_admin_users():
     return jsonify({'users': users}), 200
 
 def get_attendance_logs(identity, role):
-    conn = sqlite3.connect('database.db')
+    conn = sqlite3.connect(os.path.join(BASE_DIR, 'database.db'))
     c = conn.cursor()
     if role == 'admin':
         c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id ORDER BY a.timestamp DESC")
@@ -263,29 +275,29 @@ def api_logs():
 @app.route('/attendance')
 @login_required
 def serve_attendance_page():
-    return send_from_directory('.', 'attendance.html')
+    return send_from_directory(BASE_DIR, 'attendance.html')
 
 @app.route('/enroll')
 @login_required
 def serve_enroll_page():
-    return send_from_directory('.', 'enroll.html')
+    return send_from_directory(BASE_DIR, 'enroll.html')
 
 @app.route('/dashboard')
 @login_required
 def serve_dashboard_page():
-    return send_from_directory('.', 'dashboard.html')
+    return send_from_directory(BASE_DIR, 'dashboard.html')
 
 @app.route('/admin')
 @login_required
 def serve_admin_dashboard():
     if session.get('role') != 'admin':
         return redirect(url_for('serve_dashboard_page'))
-    return send_from_directory('.', 'admin.html')
+    return send_from_directory(BASE_DIR, 'admin.html')
 
 # Static serving
 @app.route('/')
 def index_page():
-    return send_from_directory('.', 'index.html')
+    return send_from_directory(BASE_DIR, 'index.html')
 
 @app.route('/<path:path>')
 def static_files(path):
@@ -294,13 +306,23 @@ def static_files(path):
     if path.endswith(sensitive_extensions) or path.startswith('.'):
         return redirect(url_for('index_page'))
 
-    if os.path.exists(path):
-        return send_from_directory('.', path)
+    full_path = os.path.join(BASE_DIR, path)
+    if os.path.exists(full_path) and os.path.isfile(full_path):
+        return send_from_directory(BASE_DIR, path)
 
-    # If it's a known route but without .html, we shouldn't reach here
-    # because Flask matches more specific routes first.
-    # Fallback to index.html for SPA-like behavior
-    return send_from_directory('.', 'index.html')
+    # Fallback to index.html for unknown routes to support client-side routing
+    return send_from_directory(BASE_DIR, 'index.html')
+
+# Error Handlers
+@app.errorhandler(404)
+def not_found_error(error):
+    if request.path.startswith('/api/'):
+        return jsonify({'message': 'Resource not found', 'error': str(error)}), 404
+    return redirect(url_for('index_page'))
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({'message': 'Internal server error', 'error': str(error)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
