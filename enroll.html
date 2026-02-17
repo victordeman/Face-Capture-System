@@ -119,6 +119,9 @@
 
             enrollBtn.disabled = true;
             enrollBtn.classList.add('opacity-50');
+            enrollBtn.innerHTML = '<i data-feather="loader" class="animate-spin w-5 h-5"></i> Capturing...';
+            feather.replace();
+
             captureOverlay.classList.remove('opacity-0');
             captureOverlay.classList.add('opacity-100');
 
@@ -142,6 +145,8 @@
             captureOverlay.classList.remove('opacity-100');
             captureOverlay.classList.add('opacity-0');
             statusText.textContent = 'Processing and enrolling...';
+            enrollBtn.innerHTML = '<i data-feather="loader" class="animate-spin w-5 h-5"></i> Enrolling...';
+            feather.replace();
 
             const formData = new FormData();
             formData.append('name', name);
@@ -167,12 +172,16 @@
                 if (response.ok) {
                     statusText.textContent = 'Enrollment successful! Redirecting...';
                     statusText.className = 'text-emerald-600 font-bold';
+                    enrollBtn.innerHTML = '<i data-feather="check" class="w-5 h-5"></i> Done!';
+                    feather.replace();
                     setTimeout(() => window.location.href = '/dashboard', 2000);
                 } else {
                     statusText.textContent = data.message || 'Enrollment failed';
                     statusText.className = 'text-red-600 font-bold';
                     enrollBtn.disabled = false;
                     enrollBtn.classList.remove('opacity-50');
+                    enrollBtn.innerHTML = '<i data-feather="user-plus" class="w-5 h-5"></i> Start Enrollment';
+                    feather.replace();
                 }
             } catch (err) {
                 console.error("Enrollment error:", err);

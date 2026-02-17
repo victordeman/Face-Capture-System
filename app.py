@@ -146,12 +146,26 @@ def api_enroll():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     try:
-        c.execute("INSERT INTO users (name, email, embedding, role, password) VALUES (?, ?, ?, ?, ?)",
-                  (name, email, encrypted, 'employee', 'defaultpass'))
+        # Check if user already exists
+        c.execute("SELECT id FROM users WHERE email = ?", (email,))
+        user = c.fetchone()
+
+        if user:
+            # Update existing user's name and embedding
+            c.execute("UPDATE users SET name = ?, embedding = ? WHERE id = ?",
+                      (name, encrypted, user[0]))
+            message = 'Face enrollment updated successfully'
+        else:
+            # Create new user
+            c.execute("INSERT INTO users (name, email, embedding, role, password) VALUES (?, ?, ?, ?, ?)",
+                      (name, email, encrypted, 'employee', 'defaultpass'))
+            message = 'Enrollment successful'
+
         conn.commit()
-        return jsonify({'message': 'Enrollment successful'}), 200
-    except sqlite3.IntegrityError:
-        return jsonify({'message': 'Email already enrolled'}), 400
+        return jsonify({'message': message}), 200
+    except Exception as e:
+        print(f"Database error during enrollment: {e}")
+        return jsonify({'message': 'Error saving enrollment data'}), 500
     finally:
         conn.close()
 
