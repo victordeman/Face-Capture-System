@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, session
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity, get_jwt
 import sqlite3
 import numpy as np
 import face_recognition
@@ -105,7 +105,7 @@ def api_login():
     if user and check_password_hash(user['password'], password):
         session['user_id'] = user['id']
         session['role'] = user['role']
-        token = create_access_token(identity={'id': user['id'], 'role': user['role']})
+        token = create_access_token(identity=str(user['id']), additional_claims={'role': user['role']})
         return jsonify({'access_token': token, 'role': user['role']}), 200
     return jsonify({'message': 'Invalid credentials'}), 401
 
@@ -202,12 +202,77 @@ def api_recognize():
 
     return jsonify({'message': 'Face not recognized'}), 401
 
+# User APIs
+@app.route('/api/user/profile', methods=['GET'])
+@jwt_required()
+def api_user_profile():
+    user_id = get_jwt_identity()
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("SELECT name, role FROM users WHERE id = ?", (user_id,))
+        user = c.fetchone()
+    if user:
+        return jsonify(dict(user)), 200
+    return jsonify({'message': 'User not found'}), 404
+
+@app.route('/api/user/stats', methods=['GET'])
+@jwt_required()
+def api_user_stats():
+    user_id = get_jwt_identity()
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) as present FROM attendance WHERE user_id = ? AND status = 'present'", (user_id,))
+        present = c.fetchone()['present']
+        # Mocking absent count for now as we don't have a schedule table
+        c.execute("SELECT COUNT(*) as absent FROM attendance WHERE user_id = ? AND status = 'absent'", (user_id,))
+        absent = c.fetchone()['absent']
+    return jsonify({'present': present, 'absent': absent}), 200
+
+@app.route('/api/logs', methods=['GET'])
+@jwt_required()
+def api_logs():
+    user_id = get_jwt_identity()
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("SELECT timestamp, status FROM attendance WHERE user_id = ? ORDER BY timestamp DESC", (user_id,))
+        logs = [dict(row) for row in c.fetchall()]
+    return jsonify(logs), 200
+
 # Admin APIs
+@app.route('/api/admin/stats', methods=['GET'])
+@jwt_required()
+def api_admin_stats():
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
+        return jsonify({'message': 'Admin access required'}), 403
+
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) as total_users FROM users")
+        total_users = c.fetchone()['total_users']
+        c.execute("SELECT COUNT(*) as today_attendance FROM attendance WHERE date(timestamp) = date('now')")
+        today_attendance = c.fetchone()['today_attendance']
+    return jsonify({'total_users': total_users, 'today_attendance': today_attendance}), 200
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def api_delete_user(user_id):
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
+        return jsonify({'message': 'Admin access required'}), 403
+
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        c.execute("DELETE FROM attendance WHERE user_id = ?", (user_id,))
+        conn.commit()
+    return jsonify({'message': 'User deleted successfully'}), 200
+
 @app.route('/api/admin/users', methods=['GET'])
 @jwt_required()
 def api_admin_users():
-    current_user = get_jwt_identity()
-    if current_user['role'] != 'admin':
+    claims = get_jwt()
+    if claims.get('role') != 'admin':
         return jsonify({'message': 'Admin access required'}), 403
 
     with get_db() as conn:
@@ -219,13 +284,14 @@ def api_admin_users():
 @app.route('/api/admin/attendance', methods=['GET'])
 @jwt_required()
 def api_admin_attendance():
-    current_user = get_jwt_identity()
+    user_id = get_jwt_identity()
+    claims = get_jwt()
     with get_db() as conn:
         c = conn.cursor()
-        if current_user['role'] == 'admin':
+        if claims.get('role') == 'admin':
             c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id ORDER BY a.timestamp DESC")
         else:
-            c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id WHERE u.id = ? ORDER BY a.timestamp DESC", (current_user['id'],))
+            c.execute("SELECT a.id, u.name, a.timestamp, a.status FROM attendance a JOIN users u ON a.user_id = u.id WHERE u.id = ? ORDER BY a.timestamp DESC", (user_id,))
         logs = [dict(row) for row in c.fetchall()]
     return jsonify({'logs': logs}), 200
 

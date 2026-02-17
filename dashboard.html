@@ -43,8 +43,8 @@
                         <div class="w-24 h-24 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 mx-auto mb-4 flex items-center justify-center text-white">
                             <i data-feather="user" class="w-12 h-12"></i>
                         </div>
-                        <h2 class="text-2xl font-bold mb-1">Welcome Back</h2>
-                        <p class="text-slate-500 text-sm mb-6">Employee Dashboard</p>
+                        <h2 id="user-name" class="text-2xl font-bold mb-1">Welcome Back</h2>
+                        <p id="user-role" class="text-slate-500 text-sm mb-6">Employee Dashboard</p>
                     </div>
                     <div class="space-y-4">
                         <a href="/attendance" class="block w-full py-3 rounded-xl bg-primary-600 text-white text-center font-semibold hover:bg-primary-700 transition shadow-lg">
@@ -61,11 +61,11 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
                             <p class="text-emerald-600 dark:text-emerald-400 text-sm">Present</p>
-                            <p class="text-2xl font-bold">22</p>
+                            <p id="stat-present" class="text-2xl font-bold">--</p>
                         </div>
                         <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
                             <p class="text-red-600 dark:text-red-400 text-sm">Absent</p>
-                            <p class="text-2xl font-bold">2</p>
+                            <p id="stat-absent" class="text-2xl font-bold">--</p>
                         </div>
                     </div>
                 </div>

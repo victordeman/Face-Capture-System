@@ -145,6 +145,27 @@ const initDashboard = async () => {
     const logsContainer = document.getElementById('logs');
     if (!logsContainer) return;
 
+    // Fetch Profile
+    try {
+        const res = await fetch('/api/user/profile', { headers: getAuthHeader() });
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById('user-name').textContent = `Welcome, ${data.name}`;
+            document.getElementById('user-role').textContent = `${data.role.charAt(0).toUpperCase() + data.role.slice(1)} Dashboard`;
+        }
+    } catch (err) { console.error("Profile load error", err); }
+
+    // Fetch Stats
+    try {
+        const res = await fetch('/api/user/stats', { headers: getAuthHeader() });
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById('stat-present').textContent = data.present;
+            document.getElementById('stat-absent').textContent = data.absent;
+        }
+    } catch (err) { console.error("Stats load error", err); }
+
+    // Fetch Logs
     try {
         const response = await fetch('/api/logs', {
             headers: getAuthHeader()
