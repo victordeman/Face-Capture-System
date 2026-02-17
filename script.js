@@ -142,62 +142,12 @@ const initAttendance = async () => {
 
 // Dashboard (dashboard.html)
 const initDashboard = async () => {
-    const logsContainer = document.getElementById('logs');
-    if (!logsContainer) return;
+    if (!document.getElementById('logs')) return;
 
-    // Fetch Profile
-    try {
-        const res = await fetch('/api/user/profile', { headers: getAuthHeader() });
-        if (res.ok) {
-            const data = await res.json();
-            document.getElementById('user-name').textContent = `Welcome, ${data.name}`;
-            document.getElementById('user-role').textContent = `${data.role.charAt(0).toUpperCase() + data.role.slice(1)} Dashboard`;
-        }
-    } catch (err) { console.error("Profile load error", err); }
-
-    // Fetch Stats
-    try {
-        const res = await fetch('/api/user/stats', { headers: getAuthHeader() });
-        if (res.ok) {
-            const data = await res.json();
-            document.getElementById('stat-present').textContent = data.present;
-            document.getElementById('stat-absent').textContent = data.absent;
-        }
-    } catch (err) { console.error("Stats load error", err); }
-
-    // Fetch Logs
-    try {
-        const response = await fetch('/api/logs', {
-            headers: getAuthHeader()
-        });
-        const logs = await response.json();
-
-        if (response.ok) {
-            logsContainer.innerHTML = logs.length ? '' : '<p class="text-slate-500">No logs found.</p>';
-            logs.forEach(log => {
-                const div = document.createElement('div');
-                div.className = "flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-700";
-                div.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center">
-                            <i data-feather="check-circle" class="w-5 h-5"></i>
-                        </div>
-                        <div>
-                            <p class="log-timestamp font-semibold"></p>
-                            <p class="text-xs text-slate-500">Verified via FaceID</p>
-                        </div>
-                    </div>
-                    <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">Present</span>
-                `;
-                div.querySelector('.log-timestamp').textContent = log.timestamp;
-                logsContainer.appendChild(div);
-            });
-            if (typeof feather !== 'undefined') feather.replace();
-        } else if (response.status === 401) {
-            window.location.href = '/';
-        }
-    } catch (err) {
-        logsContainer.innerHTML = '<p class="text-red-500">Failed to load logs.</p>';
+    // Use DashboardJS component if available
+    if (window.DashboardJS) {
+        const dashboard = new DashboardJS({ mode: 'async', pollInterval: 5000 });
+        await dashboard.init();
     }
 };
 
