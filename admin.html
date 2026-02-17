@@ -3,198 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enroll Face - VisageTrack AI</title>
+    <title>Admin Dashboard - VisageTrack AI</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f5f3ff',
-                            100: '#ede9fe',
-                            500: '#8b5cf6',
-                            600: '#7c3aed',
-                            700: '#6d28d9',
-                            900: '#4c1d95',
-                        },
-                        secondary: {
-                            500: '#06b6d4',
-                            600: '#0891b2',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
 </head>
-<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 min-h-screen flex flex-col">
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-300">
     <custom-navbar></custom-navbar>
+    
+    <main class="max-w-7xl mx-auto p-8">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-4xl font-bold text-slate-900 dark:text-white">Admin Dashboard</h1>
+            <div class="flex gap-4">
+                <button onclick="loadAdminDashboard()" class="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm hover:bg-slate-50 transition flex items-center gap-2">
+                    <i data-feather="refresh-cw" class="w-4 h-4"></i> Refresh
+                </button>
+            </div>
+        </div>
 
-    <main class="flex-grow flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900 min-h-[calc(100vh-64px)]">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-200 dark:border-slate-700 max-w-2xl w-full">
-            <h1 class="text-4xl font-bold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600">Enroll Your Face</h1>
-            <p class="text-center text-lg mb-8 text-slate-600 dark:text-slate-400">
-                Fill your details and capture your face from different angles.
-            </p>
-
-            <form id="enroll-form" class="space-y-6">
-                <div>
-                    <label for="name" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Full Name</label>
-                    <div class="relative">
-                        <i data-feather="user" class="absolute left-3 top-3 w-5 h-5 text-slate-400"></i>
-                        <input type="text" id="name" required placeholder="John Doe" class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all">
-                    </div>
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="card p-6 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center">
+                    <i data-feather="users"></i>
                 </div>
                 <div>
-                    <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
-                    <div class="relative">
-                        <i data-feather="mail" class="absolute left-3 top-3 w-5 h-5 text-slate-400"></i>
-                        <input type="email" id="email" required placeholder="john@example.com" class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all">
-                    </div>
+                    <p class="text-sm text-slate-500 font-medium">Total Users</p>
+                    <p id="stat-users" class="text-2xl font-bold">...</p>
                 </div>
-            </form>
+            </div>
+            <div class="card p-6 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-secondary-100 dark:bg-secondary-900/30 text-secondary-600 flex items-center justify-center">
+                    <i data-feather="check-circle"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500 font-medium">Attendance Logs</p>
+                    <p id="stat-logs" class="text-2xl font-bold">...</p>
+                </div>
+            </div>
+            <div class="card p-6 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center">
+                    <i data-feather="activity"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500 font-medium">System Status</p>
+                    <p class="text-2xl font-bold text-emerald-600">Active</p>
+                </div>
+            </div>
+        </div>
 
-            <div class="relative rounded-2xl overflow-hidden border-4 border-primary-500/20 mb-8 mt-8 bg-slate-900 aspect-video">
-                <video id="video" autoplay playsinline class="w-full h-full object-cover"></video>
-                <div class="absolute inset-0 border-2 border-primary-500/50 pointer-events-none"></div>
-                <div id="capture-overlay" class="absolute inset-0 bg-primary-600/20 flex items-center justify-center opacity-0 transition-opacity">
-                    <span class="text-white font-bold text-2xl">Capturing...</span>
+        <div class="grid lg:grid-cols-2 gap-8">
+            <!-- User Management -->
+            <div class="card p-8 overflow-hidden">
+                <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                    <i data-feather="users" class="text-primary-600"></i>
+                    User Management
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b border-slate-100 dark:border-slate-800">
+                                <th class="pb-4 font-semibold text-slate-500">User</th>
+                                <th class="pb-4 font-semibold text-slate-500">Role</th>
+                                <th class="pb-4 font-semibold text-slate-500">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-table-body" class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <tr><td colspan="3" class="py-4 text-center text-slate-400">Loading users...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div id="status" class="text-center text-lg font-medium mb-6 text-slate-600 dark:text-slate-400">
-                <span id="status-text">Grant camera access to begin</span>
+            <!-- Recent Attendance -->
+            <div class="card p-8">
+                <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                    <i data-feather="list" class="text-secondary-600"></i>
+                    Attendance Logs
+                </h2>
+                <div id="logs" class="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                    <p class="text-center text-slate-400 py-4">Loading logs...</p>
+                </div>
             </div>
-
-            <button id="enroll-btn" class="w-full py-4 rounded-xl bg-gradient-to-r from-primary-600 to-secondary-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] flex items-center justify-center gap-3">
-                <i data-feather="user-plus" class="w-5 h-5"></i>
-                Start Enrollment
-            </button>
         </div>
     </main>
 
     <script src="components/navbar.js"></script>
     <script src="script.js"></script>
     <script>
-        const video = document.getElementById('video');
-        const statusText = document.getElementById('status-text');
-        const enrollBtn = document.getElementById('enroll-btn');
-        const enrollForm = document.getElementById('enroll-form');
-        const captureOverlay = document.getElementById('capture-overlay');
-
-        // Initialize Camera
-        async function initCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
-                        facingMode: "user"
-                    } 
-                });
-                video.srcObject = stream;
-                statusText.textContent = 'Camera ready. Fill details and click Start.';
-                statusText.className = 'text-emerald-600 dark:text-emerald-400 font-medium';
-            } catch (err) {
-                console.error("Camera error:", err);
-                statusText.textContent = 'Error: Camera not found or permission denied';
-                statusText.className = 'text-red-600 dark:text-red-400 font-medium';
-                enrollBtn.disabled = true;
-                enrollBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        // Trigger dashboard loading on mount
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof loadAdminDashboard === 'function') {
+                loadAdminDashboard();
             }
-        }
-
-        async function captureImages() {
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-
-            if (!name || !email) {
-                alert('Please fill in your name and email first.');
-                return;
-            }
-
-            enrollBtn.disabled = true;
-            enrollBtn.classList.add('opacity-50');
-            enrollBtn.innerHTML = '<i data-feather="loader" class="animate-spin w-5 h-5"></i> Capturing...';
-            feather.replace();
-
-            captureOverlay.classList.remove('opacity-0');
-            captureOverlay.classList.add('opacity-100');
-            
-            const images = [];
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-
-            for (let i = 1; i <= 10; i++) {
-                statusText.textContent = `Capturing face: ${i}/10`;
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
-                images.push(blob);
-                
-                // 300ms delay between captures to ensure motion for liveness check
-                await new Promise(resolve => setTimeout(resolve, 300));
-            }
-
-            captureOverlay.classList.remove('opacity-100');
-            captureOverlay.classList.add('opacity-0');
-            statusText.textContent = 'Processing and enrolling...';
-            enrollBtn.innerHTML = '<i data-feather="loader" class="animate-spin w-5 h-5"></i> Enrolling...';
-            feather.replace();
-
-            const formData = new FormData();
-            formData.append('name', name);
-            formData.append('email', email);
-            images.forEach((blob, i) => {
-                formData.append(`image${i+1}`, blob, `face_${i+1}.jpg`);
-            });
-
-            try {
-                const headers = {};
-                const token = localStorage.getItem('jwt_token');
-                if (token && token !== 'null' && token !== 'undefined') {
-                    headers['Authorization'] = `Bearer ${token}`;
-                }
-
-                const response = await fetch('/api/enroll', {
-                    method: 'POST',
-                    headers: headers,
-                    body: formData
-                });
-
-                const data = await response.json();
-                if (response.ok) {
-                    statusText.textContent = 'Enrollment successful! Redirecting...';
-                    statusText.className = 'text-emerald-600 font-bold';
-                    enrollBtn.innerHTML = '<i data-feather="check" class="w-5 h-5"></i> Done!';
-                    feather.replace();
-                    setTimeout(() => window.location.href = '/dashboard', 2000);
-                } else {
-                    statusText.textContent = data.message || 'Enrollment failed';
-                    statusText.className = 'text-red-600 font-bold';
-                    enrollBtn.disabled = false;
-                    enrollBtn.classList.remove('opacity-50');
-                    enrollBtn.innerHTML = '<i data-feather="user-plus" class="w-5 h-5"></i> Start Enrollment';
-                    feather.replace();
-                }
-            } catch (err) {
-                console.error("Enrollment error:", err);
-                statusText.textContent = 'Server error. Please try again later.';
-                statusText.className = 'text-red-600 font-bold';
-                enrollBtn.disabled = false;
-                enrollBtn.classList.remove('opacity-50');
-            }
-        }
-
-        enrollBtn.addEventListener('click', captureImages);
-        window.addEventListener('DOMContentLoaded', initCamera);
-        feather.replace();
+        });
     </script>
 </body>
 </html>
